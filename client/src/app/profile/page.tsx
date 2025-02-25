@@ -1,27 +1,19 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     Trophy,
     Code,
-    AlertCircle,
-    Activity,
-    Clock,
     Zap,
     Star,
     Calendar,
-    BookOpen,
-    GitBranch,
     Award,
-    BarChart,
     ChevronRight,
     Github,
-    FileCode,
     CheckCircle,
     Coffee,
-    User,
     Settings,
-    MessageSquare
+    MessageSquare,
 } from 'lucide-react';
 
 const ProfilePage = () => {

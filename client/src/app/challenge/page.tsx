@@ -1,21 +1,17 @@
-"use client";
-
-import React, { useState, useEffect } from 'react';
+"use client";;
+import { useState, useEffect } from 'react';
 import {
     Clock,
     Check,
-    AlignJustify,
     Play,
     Save,
     Settings,
     Users,
     MessageSquare,
     ChevronRight,
-    BarChart,
     Award,
-    Zap
+    Zap,
 } from 'lucide-react';
-import { textarea } from 'framer-motion/client';
 
 const ChallengeInterface = () => {
     const [activeTab, setActiveTab] = useState('description');

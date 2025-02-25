@@ -10,7 +10,7 @@ const AboutPage = () => {
         {
             name: "Alex Morgan",
             role: "Founder & Lead Developer",
-            image: "",
+            image: "2101727.jpg",
             bio: "Former Google engineer with 12+ years of experience in competitive programming and algorithm design.",
             github: "#",
             twitter: "#",
@@ -19,7 +19,7 @@ const AboutPage = () => {
         {
             name: "Sarah Chen",
             role: "Head of Curriculum",
-            image: "",
+            image: "Me.jpg",
             bio: "PhD in Computer Science with experience designing technical interview systems for top tech companies.",
             github: "#",
             twitter: "#",
@@ -28,7 +28,7 @@ const AboutPage = () => {
         {
             name: "Marcus Williams",
             role: "Community Manager",
-            image: "",
+            image: "Ram.jpg",
             bio: "Passionate about fostering inclusive coding communities and organizing competitive programming events.",
             github: "#",
             twitter: "#",

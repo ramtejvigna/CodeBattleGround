@@ -1,7 +1,19 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Award, Check, Code, Star, BookOpen, Globe, Database, Server, CloudCog, ChevronRight, Clock, Users, Zap, Lock } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Check,
+  Code,
+  BookOpen,
+  Globe,
+  Database,
+  Server,
+  CloudCog,
+  ChevronRight,
+  Clock,
+  Users,
+  Zap,
+} from 'lucide-react';
 
 const CertificationsPage = () => {
   const [activeCategory, setActiveCategory] = useState('all');
