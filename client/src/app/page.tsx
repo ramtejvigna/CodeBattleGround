@@ -107,7 +107,7 @@ const Home = () => {
                 </div>
               </div>
               <div className="font-mono text-sm bg-gray-900 p-4 rounded-lg">
-                <pre className="text-green-400">// Find the winner with highest points</pre>
+                <pre className="text-green-400">{`// Find the winner with highest points`}</pre>
                 <pre className="text-gray-300">
                   {codeTyped}<span className={`${cursor ? 'opacity-100' : 'opacity-0'} transition-opacity duration-100`}>|</span>
                 </pre>
