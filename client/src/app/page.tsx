@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState, useEffect } from 'react';
 import { 
@@ -22,6 +22,14 @@ const Home = () => {
   const [cursor, setCursor] = useState(true);
   
   const exampleCode = `function findWinner(scores) {\n  return scores\n    .sort((a, b) => b.points - a.points)\n    .map(player => player.name)[0];\n}`;
+
+  
+  const challenges = [
+    { title: "Algorithm Showdown", difficulty: "Hard", participants: 245, timeLeft: "2d 14h" },
+    { title: "Frontend Battle", difficulty: "Medium", participants: 389, timeLeft: "23h 45m" },
+    { title: "Data Structure Duel", difficulty: "Expert", participants: 126, timeLeft: "5d 8h" },
+    { title: "AI Challenge", difficulty: "Medium", participants: 312, timeLeft: "1d 3h" }
+  ];
     
   useEffect(() => {
     // Typing animation effect
@@ -50,14 +58,7 @@ const Home = () => {
       clearInterval(cursorEffect);
       clearInterval(challengeRotation);
     };
-  }, []);
-
-  const challenges = [
-    { title: "Algorithm Showdown", difficulty: "Hard", participants: 245, timeLeft: "2d 14h" },
-    { title: "Frontend Battle", difficulty: "Medium", participants: 389, timeLeft: "23h 45m" },
-    { title: "Data Structure Duel", difficulty: "Expert", participants: 126, timeLeft: "5d 8h" },
-    { title: "AI Challenge", difficulty: "Medium", participants: 312, timeLeft: "1d 3h" }
-  ];
+  }, [challenges.length, exampleCode]); // Fixed dependencies
   
   const leaderboard = [
     { rank: 1, name: "CodeNinja", points: 12560, badge: "🏆" },
@@ -104,7 +105,6 @@ const Home = () => {
                   <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 </div>
-                <span className="text-xs text-gray-400">challenge.js</span>
               </div>
               <div className="font-mono text-sm bg-gray-900 p-4 rounded-lg">
                 <pre className="text-green-400">// Find the winner with highest points</pre>

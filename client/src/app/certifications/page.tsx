@@ -241,7 +241,7 @@ const CertificationsPage = () => {
                 
                 {/* Highlights */}
                 <div className="mb-6">
-                  <h4 className="text-sm font-medium text-gray-300 mb-3">What you'll learn</h4>
+                <h4 className="text-sm font-medium text-gray-300 mb-3">What you&apos;ll learn</h4>
                   <ul className="space-y-2">
                     {cert.highlights.slice(0, 3).map((highlight, index) => (
                       <li key={index} className="flex items-start gap-2 text-sm text-gray-400">

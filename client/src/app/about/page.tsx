@@ -3,6 +3,7 @@
 import React from 'react';
 import { ArrowRight, Code, Trophy, Users, BookOpen, Zap, Laptop, Target, Globe, Github, Twitter, Linkedin } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image'; // Import the Image component
 
 const AboutPage = () => {
     // Team members data
@@ -10,7 +11,7 @@ const AboutPage = () => {
         {
             name: "Alex Morgan",
             role: "Founder & Lead Developer",
-            image: "2101727.jpg",
+            image: "/images/2101727.jpg", // Update the path accordingly
             bio: "Former Google engineer with 12+ years of experience in competitive programming and algorithm design.",
             github: "#",
             twitter: "#",
@@ -19,7 +20,7 @@ const AboutPage = () => {
         {
             name: "Sarah Chen",
             role: "Head of Curriculum",
-            image: "Me.jpg",
+            image: "/images/Me.jpg", // Update the path accordingly
             bio: "PhD in Computer Science with experience designing technical interview systems for top tech companies.",
             github: "#",
             twitter: "#",
@@ -28,7 +29,7 @@ const AboutPage = () => {
         {
             name: "Marcus Williams",
             role: "Community Manager",
-            image: "Ram.jpg",
+            image: "/images/Ram.jpg", // Update the path accordingly
             bio: "Passionate about fostering inclusive coding communities and organizing competitive programming events.",
             github: "#",
             twitter: "#",
@@ -108,11 +109,11 @@ const AboutPage = () => {
                                         {"  "}<br />
                                         {"  "}
                                         <span className="text-red-400">while</span> (determination) &#123;<br />
-                                        {"    "}skills.<span className="text-blue-400">push</span>(<span className="text-orange-400">'new knowledge'</span>);<br />
+                                        {"    "}skills.<span className="text-blue-400">push</span>(<span className="text-orange-400">&apos;new knowledge&apos;</span>);<br />
                                         {"    "}
                                         <span className="text-red-400">if</span> (skills.<span className="text-blue-400">length</span> &gt; <span className="text-yellow-400">1000</span>) &#123;<br />
                                         {"      "}<span className="text-red-400">return</span>{" "}
-                                        <span className="text-orange-400">'Coding Warrior'</span>;<br />
+                                        <span className="text-orange-400">&apos;Coding Warrior&apos;</span>;<br />
                                         {"    "}&#125;<br />
                                         {"  "}&#125;<br />
                                         &#125;
@@ -187,9 +188,11 @@ const AboutPage = () => {
                         {teamMembers.map((member, index) => (
                             <div key={index} className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 hover:border-gray-600 transition-all duration-300">
                                 <div className="p-6 text-center">
-                                    <img
+                                    <Image
                                         src={member.image}
                                         alt={member.name}
+                                        width={96}
+                                        height={96}
                                         className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-orange-500"
                                     />
                                     <h3 className="text-xl font-semibold mb-1">{member.name}</h3>
@@ -217,7 +220,6 @@ const AboutPage = () => {
             <div className="py-16 bg-gray-900">
                 <div className="container mx-auto px-8 max-w-4xl">
                     <div className="bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg p-10 relative overflow-hidden border border-gray-600">
-                        {/* bg-[url('/api/placeholder/800/400')] */}
                         <div className="absolute inset-0 opacity-10 mix-blend-overlay"></div>
                         <div className="relative z-10 text-center">
                             <h2 className="text-3xl font-bold mb-4">Ready to Join the Battle?</h2>

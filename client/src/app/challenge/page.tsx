@@ -16,7 +16,7 @@ import {
 const ChallengeInterface = () => {
     const [activeTab, setActiveTab] = useState('description');
     const [timeLeft, setTimeLeft] = useState(7200); // 2 hours in seconds
-    const [isSolved, setIsSolved] = useState(false);
+    // const [isSolved, setIsSolved] = useState(false);
     const [testsPassed, setTestsPassed] = useState(0);
     const [showHint, setShowHint] = useState(false);
     const [code, setCode] = useState(`function findOptimalPath(grid) {

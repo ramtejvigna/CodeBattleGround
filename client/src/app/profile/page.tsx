@@ -49,14 +49,14 @@ const ProfilePage = () => {
     };
 
     // Mock statistics for the progress chart
-    const monthlyProgress = [
-        { month: "Jan", challenges: 32, points: 1250 },
-        { month: "Feb", challenges: 28, points: 1100 },
-        { month: "Mar", challenges: 35, points: 1380 },
-        { month: "Apr", challenges: 42, points: 1640 },
-        { month: "May", challenges: 38, points: 1450 },
-        { month: "Jun", challenges: 45, points: 1720 }
-    ];
+    // const monthlyProgress = [
+    //     { month: "Jan", challenges: 32, points: 1250 },
+    //     { month: "Feb", challenges: 28, points: 1100 },
+    //     { month: "Mar", challenges: 35, points: 1380 },
+    //     { month: "Apr", challenges: 42, points: 1640 },
+    //     { month: "May", challenges: 38, points: 1450 },
+    //     { month: "Jun", challenges: 45, points: 1720 }
+    // ];
 
     return (
         <div className="bg-gray-900 min-h-screen text-gray-200">
