@@ -13,14 +13,14 @@ const GridModel = () => {
                 { name: "System Design", icon: <BarChart2 className="w-4 h-4" />, href: "/challenges/system-design" },
             ]
         },
-        {
-            title: "Learn",
-            items: [
-                { name: "Tutorials", icon: <Book className="w-4 h-4" />, href: "/learn/tutorials" },
-                { name: "Interview Prep", icon: <Users className="w-4 h-4" />, href: "/learn/interview-prep" },
-                { name: "Documentation", icon: <Info className="w-4 h-4" />, href: "/learn/docs" },
-            ]
-        },
+        // {
+        //     title: "Learn",
+        //     items: [
+        //         { name: "Tutorials", icon: <Book className="w-4 h-4" />, href: "/learn/tutorials" },
+        //         { name: "Interview Prep", icon: <Users className="w-4 h-4" />, href: "/learn/interview-prep" },
+        //         { name: "Documentation", icon: <Info className="w-4 h-4" />, href: "/learn/docs" },
+        //     ]
+        // },
         {
             title: "Community",
             items: [

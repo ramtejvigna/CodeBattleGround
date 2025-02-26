@@ -15,6 +15,8 @@ import {
   Github,
   Award
 } from 'lucide-react';
+import Link from 'next/link';
+
 
 const Home = () => {
   const [currentChallenge, setCurrentChallenge] = useState(0);
@@ -88,9 +90,9 @@ const Home = () => {
             </p>
             
             <div className="flex flex-wrap gap-4">
-              <button className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg font-semibold flex items-center gap-2 transition-transform hover:translate-y-[-2px] shadow-lg shadow-orange-900/30">
+              <Link href="/challenge" className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg font-semibold flex items-center gap-2 transition-transform hover:translate-y-[-2px] shadow-lg shadow-orange-900/30">
                 Join Battle <Swords className="w-4 h-4" />
-              </button>
+              </Link>
               <button className="px-6 py-3 bg-gray-800 border border-gray-700 rounded-lg font-semibold flex items-center gap-2 transition-all hover:bg-gray-750 hover:border-orange-500">
                 Practice Now <Terminal className="w-4 h-4" />
               </button>
