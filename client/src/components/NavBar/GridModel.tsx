@@ -1,7 +1,7 @@
 // GridModel.js
 import React from 'react';
 import Link from 'next/link';
-import { Code, Book, Award, Users, MessageSquare, BarChart2, Terminal, Zap, Star, Info } from 'lucide-react';
+import { Code, Award, MessageSquare, BarChart2, Terminal, Zap, Star, } from 'lucide-react';
 
 const GridModel = () => {
     const categories = [
