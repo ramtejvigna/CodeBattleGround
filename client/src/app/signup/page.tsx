@@ -3,21 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  Eye, 
-  EyeOff, 
-  Github, 
-  Mail, 
-  Lock, 
-  UserPlus, 
-  LogIn, 
-  ArrowLeft, 
-  Code, 
-  AlertCircle,
-  Terminal, 
-  Zap,
-  User,
-  Globe
+import {
+    Eye,
+    EyeOff,
+    Github,
+    Mail,
+    Lock,
+    UserPlus,
+    LogIn,
+    ArrowLeft,
+    Code,
+    AlertCircle,
+    Terminal,
+    Zap,
+    User,
+    Globe
 } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 
@@ -46,7 +46,7 @@ export default function AuthForm() {
     // Animation for background code typing effect - only run on client
     useEffect(() => {
         if (!isClient) return;
-        
+
         const codeSamples = [
             '// The ultimate coding challenge platform',
             'function solveChallenge(code, tests) {',
@@ -88,7 +88,7 @@ export default function AuthForm() {
 
     useEffect(() => {
         if (!isClient) return;
-        
+
         const fullCode = codeLines.join('\n');
         setTypedCode(fullCode.substring(0, codePosition));
     }, [codePosition, codeLines, isClient]);
@@ -104,7 +104,7 @@ export default function AuthForm() {
         setError(null);
 
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch('/api/auth/signup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -128,6 +128,7 @@ export default function AuthForm() {
 
             // Redirect to the dashboard or home page
             router.push('/');
+
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred');
         } finally {
@@ -138,7 +139,11 @@ export default function AuthForm() {
     const handleSocialLogin = async (provider: 'google' | 'github') => {
         setLoading(true);
         try {
-            window.location.href = `/api/auth/${provider}`;
+            const response = await fetch(`/api/auth/${provider}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
         } catch (err) {
             setError('Failed to initialize social login');
             setLoading(false);
@@ -148,15 +153,15 @@ export default function AuthForm() {
     // Deterministic Matrix-like raining code effect component
     const MatrixRain = () => {
         if (!isClient) return null;
-        
+
         // Use a deterministic pattern instead of random
         return (
             <div className="absolute inset-0 overflow-hidden z-0 select-none pointer-events-none opacity-20">
                 <div className="absolute top-0 left-0 right-0 flex justify-between">
                     {Array.from({ length: 20 }).map((_, index) => (
-                        <div key={index} 
-                            className="text-green-500 text-xs font-mono animate-matrix-rain" 
-                            style={{ 
+                        <div key={index}
+                            className="text-green-500 text-xs font-mono animate-matrix-rain"
+                            style={{
                                 animationDelay: `${(index % 5) * 1}s`,
                                 animationDuration: `${5 + (index % 10)}s`
                             }}>
@@ -176,7 +181,7 @@ export default function AuthForm() {
         <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 relative overflow-hidden">
             {/* Matrix-like code rain - only rendered client-side */}
             {isClient && <MatrixRain />}
-            
+
             {/* Animated background glow */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute top-1/4 -left-40 w-80 h-80 bg-orange-600 rounded-full mix-blend-multiply filter blur-lg opacity-20 animate-pulse"></div>
@@ -227,19 +232,19 @@ export default function AuthForm() {
                     <div className="p-6 border-b border-gray-700 relative overflow-hidden">
                         <div className="flex justify-between items-center">
                             <h2 className="text-xl font-bold text-white">
-                                Welcome Back
+                                Join the Battle
                             </h2>
                             <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center relative overflow-hidden group">
                                 <div className="absolute inset-0 bg-gradient-to-tr from-orange-600/20 to-orange-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                 <div className="relative z-10 transform group-hover:scale-110 transition-transform duration-300">
-                                    <LogIn className="w-5 h-5 text-orange-500" />
+                                    <UserPlus className="w-5 h-5 text-orange-500" />
                                 </div>
                             </div>
                         </div>
                         <p className="text-gray-400 mt-1 text-sm">
-                            Sign in to continue your coding journey
+                            Create an account to start competing
                         </p>
-                        
+
                         {/* Animated underline */}
                         <div className="h-0.5 w-1/3 bg-gradient-to-r from-orange-500 to-transparent mt-2 animate-pulse"></div>
                     </div>
@@ -252,6 +257,88 @@ export default function AuthForm() {
                                 <p className="text-red-200 text-sm">{error}</p>
                             </div>
                         )}
+
+                        <>
+                            <div className="mb-4 transform transition-all duration-300 hover:translate-x-1">
+                                <label htmlFor="username" className="block text-sm font-medium text-gray-400 mb-1">
+                                    Username
+                                </label>
+                                <div className="relative group">
+                                    <input
+                                        id="username"
+                                        name="username"
+                                        type="text"
+                                        required
+                                        value={formData.username}
+                                        onChange={handleChange}
+                                        className="w-full bg-gray-700 border border-gray-700 rounded-lg px-4 py-2.5 pl-10 text-gray-200 
+                                            placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500
+                                            transition-all duration-300 group-hover:border-gray-600"
+                                        placeholder="CodeNinja"
+                                    />
+                                    <Code className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 
+                                        group-hover:text-orange-500 transition-colors duration-300" />
+                                    <div className="absolute bottom-0 left-10 right-10 h-0.5 bg-orange-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                                </div>
+                            </div>
+
+                            <div className="mb-4 transform transition-all duration-300 hover:translate-x-1">
+                                <label htmlFor="fullName" className="block text-sm font-medium text-gray-400 mb-1">
+                                    Full Name
+                                </label>
+                                <div className="relative group">
+                                    <input
+                                        id="fullName"
+                                        name="fullName"
+                                        type="text"
+                                        required
+                                        value={formData.fullName}
+                                        onChange={handleChange}
+                                        className="w-full bg-gray-700 border border-gray-700 rounded-lg px-4 py-2.5 pl-10 text-gray-200 
+                                            placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500
+                                            transition-all duration-300 group-hover:border-gray-600"
+                                        placeholder="John Doe"
+                                    />
+                                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 
+                                        group-hover:text-orange-500 transition-colors duration-300" />
+                                    <div className="absolute bottom-0 left-10 right-10 h-0.5 bg-orange-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                                </div>
+                            </div>
+
+                            <div className="mb-4 transform transition-all duration-300 hover:translate-x-1">
+                                <label htmlFor="preferredLanguage" className="block text-sm font-medium text-gray-400 mb-1">
+                                    Preferred Language
+                                </label>
+                                <div className="relative group">
+                                    <select
+                                        id="preferredLanguage"
+                                        name="preferredLanguage"
+                                        value={formData.preferredLanguage}
+                                        onChange={handleChange}
+                                        className="w-full bg-gray-700 border border-gray-700 rounded-lg px-4 py-2.5 pl-10 text-gray-200 
+                                            focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500
+                                            transition-all duration-300 group-hover:border-gray-600 
+                                            appearance-none"
+                                    >
+                                        <option value="JavaScript">JavaScript</option>
+                                        <option value="Python">Python</option>
+                                        <option value="Java">Java</option>
+                                        <option value="C++">C++</option>
+                                        <option value="TypeScript">TypeScript</option>
+                                        <option value="Go">Go</option>
+                                        <option value="Rust">Rust</option>
+                                    </select>
+                                    <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 
+                                        group-hover:text-orange-500 transition-colors duration-300" />
+                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </div>
+                                    <div className="absolute bottom-0 left-10 right-10 h-0.5 bg-orange-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                                </div>
+                            </div>
+                        </>
 
                         {/* Common Fields */}
                         <div className="mb-4 transform transition-all duration-300 hover:translate-x-1">
@@ -283,23 +370,20 @@ export default function AuthForm() {
                                 <label htmlFor="password" className="block text-sm font-medium text-gray-400">
                                     Password
                                 </label>
-                                <Link href="/forgot-password" className="text-xs text-orange-500 hover:text-orange-400 transition-colors duration-300">
-                                    Forgot password?
-                                </Link>
                             </div>
                             <div className="relative group">
                                 <input
                                     id="password"
                                     name="password"
                                     type={showPassword ? 'text' : 'password'}
-                                    autoComplete={'current-password'}
+                                    autoComplete='new-password'
                                     required
                                     value={formData.password}
                                     onChange={handleChange}
                                     className="w-full bg-gray-700 border border-gray-700 rounded-lg px-4 py-2.5 pl-10 pr-10 text-gray-200 
                                     placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500
                                     transition-all duration-300 group-hover:border-gray-600"
-                                    placeholder={'••••••••'}
+                                    placeholder='Create a password'
                                 />
                                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 
                                 group-hover:text-orange-500 transition-colors duration-300" />
@@ -309,13 +393,16 @@ export default function AuthForm() {
                                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300 
                                     transition-colors duration-300 focus:outline-none"
                                 >
-                                    {showPassword ? 
-                                        <EyeOff className="w-5 h-5 hover:text-orange-400 transition-colors duration-300" /> : 
+                                    {showPassword ?
+                                        <EyeOff className="w-5 h-5 hover:text-orange-400 transition-colors duration-300" /> :
                                         <Eye className="w-5 h-5 hover:text-orange-400 transition-colors duration-300" />
                                     }
                                 </button>
                                 <div className="absolute bottom-0 left-10 right-10 h-0.5 bg-orange-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
                             </div>
+                            <p className="mt-1 text-xs text-gray-500 group-hover:text-gray-400 transition-colors duration-300">
+                                Must be at least 8 characters with a mix of letters, numbers, and symbols
+                            </p>
                         </div>
 
                         {/* Enhanced submit button with animation effects */}
@@ -330,7 +417,7 @@ export default function AuthForm() {
                             {/* Button glow effect */}
                             <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white to-transparent opacity-0 
                             group-hover:opacity-20 transform group-hover:-translate-x-full transition-all duration-1000 ease-in-out"></span>
-                            
+
                             <span className="relative flex items-center justify-center">
                                 {loading ? (
                                     <>
@@ -343,7 +430,7 @@ export default function AuthForm() {
                                 ) : (
                                     <>
                                         <Zap className="w-5 h-5 mr-2" />
-                                        Sign In
+                                        Create Account
                                     </>
                                 )}
                             </span>
@@ -399,15 +486,15 @@ export default function AuthForm() {
                                 <div key={i} className="h-px w-full bg-gradient-to-r from-transparent via-gray-500 to-transparent mt-2"></div>
                             ))}
                         </div>
-                        
+
                         <p className="text-sm text-gray-400 relative z-10">
-                            Don't have an account?
+                            Already have an account?
                             <button
                                 type="button"
-                                onClick={() => router.push('/signup')}
+                                onClick={() => router.push('/login')}
                                 className="ml-1 text-orange-500 hover:text-orange-400 font-medium relative group"
                             >
-                                Sign up now
+                                Sign in
                                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-orange-500 group-hover:w-full transition-all duration-300"></span>
                             </button>
                         </p>

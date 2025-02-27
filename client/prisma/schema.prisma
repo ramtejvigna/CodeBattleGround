@@ -24,11 +24,14 @@ model User {
 model UserProfile {
     id                String   @id @default(cuid())
     userId            String   @unique
+    rank              Int
+    solved            Int
     user              User     @relation(fields: [userId], references: [id])
     preferredLanguage String
     level             Int
     points            Int
     streakDays        Int
+    badges            String[]
     createdAt         DateTime @default(now())
     updatedAt         DateTime @updatedAt
 }

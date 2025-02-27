@@ -12,14 +12,15 @@ const signupSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
     fullName: z.string().optional(),
     preferredLanguage: z.string().optional()
-})
+});
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
 
+        // Validate the request body
         const validation = signupSchema.safeParse(body);
-        if(!validation.success) {
+        if (!validation.success) {
             return NextResponse.json(
                 { message: "Validation failed", errors: validation.error.format() },
                 { status: 400 }
@@ -28,21 +29,27 @@ export async function POST(req: NextRequest) {
 
         const { email, password, username, fullName, preferredLanguage } = validation.data;
 
+        // Check if a user with the same email or username already exists
         const existingUser = await prisma.user.findFirst({
             where: {
-                OR: [{email }, { username }]
+                OR: [{ email }, { username }]
             }
         });
 
         if (existingUser) {
             return NextResponse.json(
-                { message: "User with this email or username already exists"},
+                { message: "User with this email or username already exists" },
                 { status: 400 }
             );
         }
 
+        // Calculate the total number of users to determine the rank
+        const totalUsers = await prisma.user.count();
+
+        // Hash the password
         const hashPassword = await bcrypt.hash(password, 10);
 
+        // Create the user and their profile
         const user = await prisma.user.create({
             data: {
                 email,
@@ -52,9 +59,12 @@ export async function POST(req: NextRequest) {
                 userProfile: {
                     create: {
                         preferredLanguage: preferredLanguage || 'JavaScript',
+                        rank: totalUsers + 1, // Ensure this is recognized
+                        solved: 0,
                         level: 1,
                         points: 0,
-                        streakDays: 0
+                        streakDays: 0,
+                        badges: [] // Initialize badges as an empty array
                     }
                 }
             },
@@ -63,6 +73,7 @@ export async function POST(req: NextRequest) {
             }
         });
 
+        // Exclude the password from the response
         const { password: _, ...userWithoutPassword } = user;
 
         return NextResponse.json(
@@ -76,13 +87,13 @@ export async function POST(req: NextRequest) {
         );
 
     } catch (error) {
-        console.error("Signup error : ", error)
+        console.error("Signup error:", error);
         return NextResponse.json(
             {
                 message: "Something went wrong",
-                err: error
+                error: error instanceof Error ? error.message : "Unknown error"
             },
             { status: 500 }
-        )
+        );
     }
 }

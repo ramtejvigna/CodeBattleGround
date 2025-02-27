@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Search, Grip } from 'lucide-react';
+import { Search, Grip, LogIn, UserPlus, LogOut, User } from 'lucide-react';
 import GridModel from './GridModel';
+import { useAuth } from '@/context/AuthContext';
 
 const NavBar = () => {
     const [searchFocus, setSearchFocus] = useState(false);
     const [gridModel, setGridModel] = useState(false);
+    const { user, logout } = useAuth();
 
     return (
         <div className=''>
@@ -70,18 +72,54 @@ const NavBar = () => {
 
                         <span className='opacity-40'>|</span>
 
-                        <li>
-                            <Link href="/profile" className="relative group">
-                                <span className="cursor-pointer transition-colors duration-300">
-                                    Profile
-                                </span>
-                                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-tr from-[#F14A00] to-[#C62300] rounded-full group-hover:w-full transition-all duration-300"></span>
-                            </Link>
-                        </li>
+                        {user ? (
+                            <>
+                                <li>
+                                    <Link href="/profile" className="relative group">
+                                        <span className="cursor-pointer transition-colors duration-300 flex items-center">
+                                            <User className="w-4 h-4 mr-1" />
+                                            Profile
+                                        </span>
+                                        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-tr from-[#F14A00] to-[#C62300] rounded-full group-hover:w-full transition-all duration-300"></span>
+                                    </Link>
+                                </li>
+                                <li>
+                                    <button 
+                                        onClick={() => logout()}
+                                        className="relative group flex items-center"
+                                    >
+                                        <span className="cursor-pointer hover:text-[#F14A00]  transition-colors duration-300 flex items-center">
+                                            <LogOut className="w-4 h-4 mr-1" />
+                                            Logout
+                                        </span>
+                                    </button>
+                                </li>
+                            </>
+                        ) : (
+                            <>
+                                <li>
+                                    <Link href="/login" className="relative group">
+                                        <span className="cursor-pointer transition-colors duration-300 flex items-center">
+                                            <LogIn className="w-4 h-4 mr-1" />
+                                            Login
+                                        </span>
+                                        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-tr from-[#F14A00] to-[#C62300] rounded-full group-hover:w-full transition-all duration-300"></span>
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/signup" className="relative group">
+                                        <span className="cursor-pointer transition-colors duration-300 flex items-center">
+                                            <UserPlus className="w-4 h-4 mr-1" />
+                                            Sign Up
+                                        </span>
+                                        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-tr from-[#F14A00] to-[#C62300] rounded-full group-hover:w-full transition-all duration-300"></span>
+                                    </Link>
+                                </li>
+                            </>
+                        )}
                     </ul>
 
-                    
-            {gridModel && <GridModel />}
+                    {gridModel && <GridModel />}
                 </div>
             </nav>
         </div>

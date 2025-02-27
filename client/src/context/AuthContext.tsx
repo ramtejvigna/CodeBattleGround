@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 
 // Define user type
 export interface User {
@@ -60,7 +61,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
 
         checkAuth();
-    }, []);
+    }, [pathname]);
 
     // Redirect to login if accessing protected route without auth
     useEffect(() => {
@@ -143,6 +144,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         try {
             await fetch('/api/auth/logout', { method: 'POST' });
+            
+            await signOut({ redirect: false });
+
             setUser(null);
             router.push('/login');
         } catch (err) {

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
+import { AuthProvider } from "@/context/AuthContext";
 
 export default function ClientLayout({
     children,
@@ -12,16 +13,16 @@ export default function ClientLayout({
     const pathname = usePathname();
 
     // Define the routes where you don't want to show NavBar and Footer
-    const noNavBarFooterRoutes = ["/login", "/registration"];
+    const noNavBarFooterRoutes = ["/login", "/signup"];
 
     // Check if the current route is in the noNavBarFooterRoutes array
     const shouldShowNavBarFooter = !noNavBarFooterRoutes.includes(pathname);
 
     return (
-        <>
+        <AuthProvider>
             {shouldShowNavBarFooter && <NavBar />}
             {children}
             {shouldShowNavBarFooter && <Footer />}
-        </>
+        </AuthProvider>
     );
 }
