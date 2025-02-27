@@ -8,16 +8,13 @@ import {
   EyeOff, 
   Github, 
   Mail, 
-  Lock, 
-  UserPlus, 
+  Lock,  
   LogIn, 
   ArrowLeft, 
   Code, 
   AlertCircle,
   Terminal, 
   Zap,
-  User,
-  Globe
 } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 
@@ -404,7 +401,7 @@ export default function AuthForm() {
                             Don't have an account?
                             <button
                                 type="button"
-                                onClick={() => router.push('/signup')}
+                                onClick={() => router.push("/signup")}
                                 className="ml-1 text-orange-500 hover:text-orange-400 font-medium relative group"
                             >
                                 Sign up now

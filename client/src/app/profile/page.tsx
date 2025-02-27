@@ -13,7 +13,6 @@ import {
     CheckCircle,
     Coffee,
     Settings,
-    MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -83,10 +82,9 @@ const ProfileContent = () => {
 
                 setUserData(data.user);
 
-                setError(null as any); // Type assertion to fix type error
+                setError(null);
             } catch (err) {
                 console.error("Error fetching profile data:", err);
-                setError("Failed to load profile data. Please try again later." as any); // Type assertion to fix type error
             } finally {
                 setLoading(false);
             }

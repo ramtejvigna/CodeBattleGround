@@ -10,7 +10,6 @@ import {
     Mail,
     Lock,
     UserPlus,
-    LogIn,
     ArrowLeft,
     Code,
     AlertCircle,
@@ -144,8 +143,11 @@ export default function AuthForm() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
+
+            console.log(response);
         } catch (err) {
             setError('Failed to initialize social login');
+            console.error(err);
             setLoading(false);
         }
     };
@@ -491,7 +493,7 @@ export default function AuthForm() {
                             Already have an account?
                             <button
                                 type="button"
-                                onClick={() => router.push('/login')}
+                                onClick={() => router.push("/login")}
                                 className="ml-1 text-orange-500 hover:text-orange-400 font-medium relative group"
                             >
                                 Sign in
