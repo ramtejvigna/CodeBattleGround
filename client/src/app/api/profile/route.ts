@@ -3,13 +3,16 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function GET(req: NextRequest, res: NextResponse) {
+export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');
 
         if (!id) {
-            return NextResponse.json({ message: "User ID is required" }, { status: 400 });
+            return NextResponse.json(
+                { message: "User ID is required" },
+                { status: 400 }
+            );
         }
 
         const user = await prisma.user.findUnique({
@@ -20,12 +23,19 @@ export async function GET(req: NextRequest, res: NextResponse) {
         });
 
         if (!user) {
-            return NextResponse.json({ message: "User not found" }, { status: 404 });
+            return NextResponse.json(
+                { message: "User not found" },
+                { status: 404 }
+            );
         }
 
+        // Remove the password field from the user object
         const { password, ...userWithoutPassword } = user;
 
-        return NextResponse.json({ user: userWithoutPassword }, { status: 200 });
+        return NextResponse.json(
+            { user: userWithoutPassword },
+            { status: 200 }
+        );
 
     } catch (error) {
         console.error("Error fetching profile:", error);
