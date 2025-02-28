@@ -1,47 +1,20 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Search, Grip, LogIn, UserPlus, LogOut } from 'lucide-react';
 import GridModel from './GridModel';
 import { useAuth } from '@/context/AuthContext';
-import { User } from '@/lib/interfaces';
 import Loader from '../Loader';
+import { useUserProfile } from '@/context/UserProfileContext';
 
 const NavBar = () => {
     const [searchFocus, setSearchFocus] = useState(false);
     const [gridModel, setGridModel] = useState(false);
-    const [userData, setUserData] = useState<User>();
-    const [loading, setLoading] = useState(true);
+
+    const { userData, loading } = useUserProfile(); 
 
     const { user, logout } = useAuth();
-
-    // Fetch user profile data from backend
-    useEffect(() => {
-        const fetchUserData = async () => {
-            if (!user) return;
-
-            try {
-                setLoading(true);
-
-                const response = await fetch(`/api/profile?id=${user.id}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                })
-
-                const data = await response.json();
-
-                setUserData(data.user);
-
-            } catch (err) {
-                console.error("Error fetching profile data:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUserData();
-    }, [user]);
 
     if(loading) {
         return <Loader />

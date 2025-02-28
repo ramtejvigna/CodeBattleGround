@@ -18,7 +18,6 @@ import {
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
-
 const Home = () => {
   const [currentChallenge, setCurrentChallenge] = useState(0);
   const [codeTyped, setCodeTyped] = useState('');

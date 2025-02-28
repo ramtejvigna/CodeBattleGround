@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
+import { UserProfileProvider } from "@/context/UserProfileContext";
 
 export default function ClientLayout({
     children,
@@ -20,9 +21,11 @@ export default function ClientLayout({
 
     return (
         <AuthProvider>
-            {shouldShowNavBarFooter && <NavBar />}
-            {children}
-            {shouldShowNavBarFooter && <Footer />}
+            <UserProfileProvider>
+                {shouldShowNavBarFooter && <NavBar />}
+                {children}
+                {shouldShowNavBarFooter && <Footer />}
+            </UserProfileProvider>
         </AuthProvider>
     );
 }

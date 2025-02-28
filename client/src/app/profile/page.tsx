@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Loader from '@/components/Loader';
 import { Badge, User } from '@/lib/interfaces';
+import { useUserProfile } from '@/context/UserProfileContext';
 
 export default function ProfilePage() {
     return (
@@ -29,61 +30,15 @@ export default function ProfilePage() {
 
 const ProfileContent = () => {
     const [activeTab, setActiveTab] = useState('overview');
-    const [userData, setUserData] = useState<User>();
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+
+    const { userData, loading } = useUserProfile();
 
     const { user } = useAuth();
 
     if (!user) return null;
 
-    // Fetch user profile data from backend
-    useEffect(() => {
-        const fetchUserData = async () => {
-            if (!user) return;
-
-            try {
-                setLoading(true);
-
-                const response = await fetch(`/api/profile?id=${user.id}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                })
-
-                const data = await response.json();
-
-                setUserData(data.user);
-
-                setError(null);
-            } catch (err) {
-                console.error("Error fetching profile data:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUserData();
-    }, [user]);
-
     if (loading) {
         return <Loader />;
-    }
-
-    if (error) {
-        return (
-            <div className="bg-gray-900 min-h-screen text-gray-200 flex items-center justify-center">
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 max-w-md">
-                    <h2 className="text-xl font-bold mb-4 text-red-500">Error Loading Profile</h2>
-                    <p className="text-gray-300">{error}</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-                    >
-                        Retry
-                    </button>
-                </div>
-            </div>
-        );
     }
 
     return (
