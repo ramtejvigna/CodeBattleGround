@@ -66,7 +66,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Redirect to login if accessing protected route without auth
     useEffect(() => {
         if (!loading && !user) {
-            const protectedRoutes = ['/dashboard', '/profile', '/challenges'];
+            const protectedRoutes = [
+                '/profile',
+                '/dashboard',
+                '/challenge',
+                '/settings',
+                '/battles'
+            ]
 
             // Check if current path is protected and user is not authenticated
             if (protectedRoutes.some(route => pathname?.startsWith(route))) {
