@@ -16,13 +16,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
-
-interface Badge {
-    iconType: 'calendar' | 'code' | 'zap' | 'star' | 'award';
-    name: string;
-    description?: string;
-    points?: number;
-}
+import Loader from '@/components/Loader';
+import { Badge, User } from '@/lib/interfaces';
 
 export default function ProfilePage() {
     return (
@@ -30,29 +25,6 @@ export default function ProfilePage() {
             <ProfileContent />
         </ProtectedRoute>
     )
-}
-
-interface User {
-    id: string,
-    username: string,
-    name: string,
-    email: string,
-    image?: string | null,
-    createdAt?: Date,
-    userProfile?: {
-        id: string,
-        bio: string,
-        rank: number,
-        languages: [{ name: string; percentage: number }],
-        preferredLanguage: string,
-        level: number,
-        points: number, 
-        solved: number,
-        streakDays: number,
-        badges: [Badge],
-        createdAt: Date,
-        updatedAt: Date
-    }
 }
 
 const ProfileContent = () => {
@@ -94,11 +66,7 @@ const ProfileContent = () => {
     }, [user]);
 
     if (loading) {
-        return (
-            <div className="bg-gray-900 min-h-screen text-gray-200 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-            </div>
-        );
+        return <Loader />;
     }
 
     if (error) {
@@ -126,17 +94,30 @@ const ProfileContent = () => {
                     <div className="flex flex-col md:flex-row md:items-center gap-6">
                         {/* Avatar and name */}
                         <div className="flex items-center gap-5">
-                            <div className="w-20 h-20 uppercase rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-2xl font-bold text-white">
-                                {userData?.username?.charAt(0)}
+                            <div className="w-16 h-16 border-2 border-orange-600 uppercase rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-2xl font-bold text-white relative group overflow-hidden">
+                                {userData?.image ? (
+                                    <img
+                                        src={userData?.image}
+                                        alt={userData?.name || 'User'}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    user?.username?.charAt(0)
+                                )}
                             </div>
 
                             <div>
-                                <h1 className="text-2xl font-bold">{userData?.username}</h1>
+                                <h1
+                                    className="text-2xl font-bold"
+                                >
+                                    {userData?.name}
+                                    <span className={`ml-2 opacity-75 font-normal text-xl`}>({userData?.username})</span>
+                                </h1>
                                 <div className="flex items-center text-gray-400 text-sm mt-1">
                                     <Calendar className="w-4 h-4 mr-1" />
                                     <span>Joined {userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString() : ''}</span>
                                 </div>
-                            </div> 
+                            </div>
                         </div>
 
                         {/* Stats */}
@@ -384,7 +365,7 @@ const ProfileContent = () => {
                             <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 border-dashed">
                                 <div className="flex items-center">
                                     <Github className="w-6 h-6 mr-3 text-gray-400" />
-                                    <h2 className="text-lg font-bold">GitHub Integration</h2>
+                                    <h2 className="text-lg font-bold">GitHub</h2>
                                 </div>
                                 {/* <p className="text-gray-400 mt-3 text-sm">
                                     {userData.githubConnected ?

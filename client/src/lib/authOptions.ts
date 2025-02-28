@@ -15,7 +15,6 @@ declare module "next-auth" {
             id: string;
             email: string;
             name?: string | null;
-            image?: string | null;
         }
     }
 }
@@ -53,8 +52,7 @@ export const authOptions: NextAuthOptions = {
                         id: user.id,
                         email: user.email,
                         name: user.name,
-                        user: user.username,
-                        image: user.image
+                        user: user.username
                     };
                 } catch (error) {
                     console.error("Authorization error:", error);

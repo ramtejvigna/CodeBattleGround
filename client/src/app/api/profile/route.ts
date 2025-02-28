@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
+// Instantiate PrismaClient outside of the request handler
 const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
@@ -14,6 +15,14 @@ export async function GET(req: NextRequest) {
                 { status: 400 }
             );
         }
+
+        // Validate the ID format if necessary (e.g., UUID)
+        // if (!isValidUUID(id)) {
+        //     return NextResponse.json(
+        //         { message: "Invalid User ID format" },
+        //         { status: 400 }
+        //     );
+        // }
 
         const user = await prisma.user.findUnique({
             where: { id },
@@ -33,15 +42,21 @@ export async function GET(req: NextRequest) {
         const { password, ...userWithoutPassword } = user;
 
         return NextResponse.json(
-            { user: userWithoutPassword },
+            { success: true, user: userWithoutPassword },
             { status: 200 }
         );
 
-    } catch (error) {
-        console.error("Error fetching profile:", error);
+    } catch (err) {
+        console.error("Error fetching profile:", err);
         return NextResponse.json(
-            { message: "Something went wrong" },
+            { success: false, message: "Something went wrong", error: err instanceof Error ? err.message : 'Unknown error' },
             { status: 500 }
         );
     }
 }
+
+// Example UUID validation function (if needed)
+// function isValidUUID(uuid: string): boolean {
+//     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+//     return uuidRegex.test(uuid);
+// }

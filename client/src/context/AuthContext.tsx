@@ -148,6 +148,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             await signOut({ redirect: false });
 
             setUser(null);
+
+            localStorage.removeItem('user');
+            
             router.push('/login');
         } catch (err) {
             console.error('Logout failed:', err);

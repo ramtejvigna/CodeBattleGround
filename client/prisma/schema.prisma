@@ -25,6 +25,8 @@ model UserProfile {
     id                String   @id @default(cuid())
     userId            String   @unique
     rank              Int
+    bio               String   @default("No bio provided")
+    phone             Int?
     solved            Int
     user              User     @relation(fields: [userId], references: [id])
     preferredLanguage String

@@ -1,15 +1,51 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, Grip, LogIn, UserPlus, LogOut, User } from 'lucide-react';
+import { Search, Grip, LogIn, UserPlus, LogOut } from 'lucide-react';
 import GridModel from './GridModel';
 import { useAuth } from '@/context/AuthContext';
+import { User } from '@/lib/interfaces';
+import Loader from '../Loader';
 
 const NavBar = () => {
     const [searchFocus, setSearchFocus] = useState(false);
     const [gridModel, setGridModel] = useState(false);
+    const [userData, setUserData] = useState<User>();
+    const [loading, setLoading] = useState(true);
+
     const { user, logout } = useAuth();
+
+    // Fetch user profile data from backend
+    useEffect(() => {
+        const fetchUserData = async () => {
+            if (!user) return;
+
+            try {
+                setLoading(true);
+
+                const response = await fetch(`/api/profile?id=${user.id}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+
+                const data = await response.json();
+
+                setUserData(data.user);
+
+            } catch (err) {
+                console.error("Error fetching profile data:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUserData();
+    }, [user]);
+
+    if(loading) {
+        return <Loader />
+    }
 
     return (
         <div className=''>
@@ -76,15 +112,21 @@ const NavBar = () => {
                             <>
                                 <li>
                                     <Link href="/profile" className="relative group">
-                                        <span className="cursor-pointer transition-colors duration-300 flex items-center">
-                                            <User className="w-4 h-4 mr-1" />
-                                            Profile
-                                        </span>
-                                        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-tr from-[#F14A00] to-[#C62300] rounded-full group-hover:w-full transition-all duration-300"></span>
+                                        <div className="w-12 h-12 border- border-orange-600 uppercase rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-2xl font-bold text-white relative group overflow-hidden">
+                                            {userData?.image ? (
+                                                <img
+                                                    src={userData?.image}
+                                                    alt={userData?.name || 'User'}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                user?.username?.charAt(0)
+                                            )}
+                                        </div>
                                     </Link>
                                 </li>
                                 <li>
-                                    <button 
+                                    <button
                                         onClick={() => logout()}
                                         className="relative group flex items-center"
                                     >

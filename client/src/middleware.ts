@@ -6,10 +6,11 @@ const protectedPaths = [
     '/profile',
     '/dashboard',
     '/challenge',
+    '/settings',
     '/battles'
 ]
 
-const authPaths = ['/login', '/signup', '/registration'];
+const authPaths = ['/login', '/signup'];
 
 export async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
