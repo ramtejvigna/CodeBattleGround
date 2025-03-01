@@ -1,4 +1,3 @@
-// app/api/profile/update/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/authOptions';
@@ -9,7 +8,6 @@ const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
     try {
-        // Verify authentication
         const session = await getServerSession(authOptions);
         if (!session || !session.user) {
             return NextResponse.json(
@@ -22,7 +20,6 @@ export async function POST(req: NextRequest) {
 
         const { name, email, phone, bio, image, preferredLanguage, userId } = body;
 
-        // Validate required fields
         if (!name || !email || !userId) {
             return NextResponse.json(
                 { success: false, message: 'Missing required fields' },
@@ -37,17 +34,16 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Construct the data object for the update
-        const updateData: any = {
+        const updateData = {
             name,
             email,
-            image,
+            ...(image && { image }),
             userProfile: {
                 upsert: {
                     create: {
-                        bio: bio || null,
-                        phone: phone || null,
-                        preferredLanguage: preferredLanguage || null,
+                        bio: bio || '',
+                        phone: phone || '',  // Changed from null to empty string
+                        preferredLanguage: preferredLanguage || '',
                         rank: 0,
                         solved: 0,
                         level: 1,
@@ -56,15 +52,14 @@ export async function POST(req: NextRequest) {
                         badges: []
                     },
                     update: {
-                        bio: bio || null,
-                        phone: phone || null,
-                        preferredLanguage: preferredLanguage || null
+                        ...(bio !== undefined && { bio }),
+                        ...(phone !== undefined && { phone }),
+                        ...(preferredLanguage !== undefined && { preferredLanguage })
                     }
                 }
             }
         };
 
-        // Update user data
         const updatedUser = await prisma.user.update({
             where: { id: userId },
             data: updateData,
@@ -77,7 +72,7 @@ export async function POST(req: NextRequest) {
             success: true,
             user: updatedUser
         });
-    } catch (error: any) {
+    } catch (error) {
         console.error('Error updating profile:', error);
         return NextResponse.json(
             { success: false, message: 'Failed to update profile' },

@@ -5,6 +5,8 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 import { UserProfileProvider } from "@/context/UserProfileContext";
+import { Toaster } from "react-hot-toast";
+import { SessionProvider } from "next-auth/react";
 
 export default function ClientLayout({
     children,
@@ -20,12 +22,15 @@ export default function ClientLayout({
     const shouldShowNavBarFooter = !noNavBarFooterRoutes.includes(pathname);
 
     return (
-        <AuthProvider>
-            <UserProfileProvider>
-                {shouldShowNavBarFooter && <NavBar />}
-                {children}
-                {shouldShowNavBarFooter && <Footer />}
-            </UserProfileProvider>
-        </AuthProvider>
+        <SessionProvider>
+            <AuthProvider>
+                <UserProfileProvider>
+                    {shouldShowNavBarFooter && <NavBar />}
+                    {children}
+                    {shouldShowNavBarFooter && <Footer />}
+                </UserProfileProvider>
+                <Toaster position="top-right" />
+            </AuthProvider>
+        </SessionProvider>
     );
 }

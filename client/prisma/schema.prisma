@@ -8,66 +8,102 @@ datasource db {
 }
 
 model User {
-    id          String       @id @default(cuid())
-    email       String       @unique
-    password    String?
-    name        String?
-    username    String       @unique
-    image       String?
-    userProfile UserProfile?
-    sessions    Session[]
-    accounts    Account[]
-    createdAt   DateTime     @default(now())
-    updatedAt   DateTime     @updatedAt
+    id                  String       @id @default(cuid())
+    email               String       @unique
+    password            String?
+    name                String?
+    username            String       @unique
+    image               String?
+    userProfile         UserProfile?
+    githubConnected     Boolean      @default(false)
+    githubUsername      String?
+    sessions            Session[]
+    accounts            Account[]
+    activites           Activity[]
+    createdAt           DateTime     @default(now())
+    updatedAt           DateTime     @updatedAt
 }
 
 model UserProfile {
-    id                String   @id @default(cuid())
-    userId            String   @unique
-    rank              Int
-    bio               String   @default("No bio provided")
-    phone             Int?
-    solved            Int
-    user              User     @relation(fields: [userId], references: [id])
-    preferredLanguage String
-    level             Int
-    points            Int
-    streakDays        Int
-    badges            String[]
-    createdAt         DateTime @default(now())
-    updatedAt         DateTime @updatedAt
+  id                String     @id @default(cuid())
+  userId            String     @unique
+  rank              Int
+  bio               String     @default("No bio provided")
+  phone             String?
+  solved            Int
+  user              User       @relation(fields: [userId], references: [id])
+  preferredLanguage String
+  level             Int
+  points            Int
+  streakDays        Int
+  badges            Badge[]
+  languages         Language[]
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+model Activity {
+    id              String      @id @default(cuid())
+    userId          String
+    user            User        @relation(fields: [userId], references: [id])
+    type            String
+    name            String
+    result          String
+    points          Int
+    time            String
+    createdAt       DateTime    @default(now())
 }
 
 model Account {
-    id                String  @id @default(cuid())
-    userId            String
-    user              User    @relation(fields: [userId], references: [id])
-    type              String
-    provider          String
-    providerAccountId String
-    refresh_token     String?
-    access_token      String?
-    expires_at        Int?
-    token_type        String?
-    scope             String?
-    id_token          String?
-    session_state     String?
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id])
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
 
-    @@unique([provider, providerAccountId])
+  @@unique([provider, providerAccountId])
 }
 
 model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    user         User     @relation(fields: [userId], references: [id])
-    expires      DateTime
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  expires      DateTime
 }
 
 model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
-    @@unique([identifier, token])
+  @@unique([identifier, token])
+}
+
+model Badge {
+  id          String        @id @default(cuid())
+  name        String
+  description String
+  iconType    String
+  points      Int
+  users       UserProfile[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Language {
+  id          String        @id @default(cuid())
+  name        String
+  percentage  Float
+  userProfile UserProfile[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }

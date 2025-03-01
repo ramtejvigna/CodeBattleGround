@@ -1,37 +1,60 @@
-export interface Badge {
-    iconType: 'calendar' | 'code' | 'zap' | 'star' | 'award';
-    name: string;
-    description?: string;
-    points?: number;
-}
-
 export interface User {
-    id: string,
-    username: string,
-    name: string,
-    email: string,
-    image?: string | null,
-    createdAt?: Date,
-    userProfile?: UserProfile
+    id: string;
+    email: string;
+    name: string | null;
+    username: string;
+    image: string | null;
+    githubConnected: boolean;
+    githubUsername?: string;
+    createdAt: string;
+    updatedAt: string;
+    userProfile?: UserProfile;
+    points?: number;
+    pointsBreakdown?: {
+        challenges: number;
+        contests: number;
+        badges: number;
+        discussions: number;
+    };
 }
 
-interface Language {
-    name: string;
-    percentage: number;
-}
 export interface UserProfile {
     id: string;
     userId: string;
     rank: number;
+    bio: string;
+    phone?: string;
     solved: number;
-    languages: Language[];
     preferredLanguage: string;
     level: number;
     points: number;
     streakDays: number;
     badges: Badge[];
-    bio?: string;
-    phone?: string;
-    createdAt: Date;
-    updatedAt: Date;
+    languages: Language[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Badge {
+    id: string;
+    name: string;
+    description: string;
+    iconType: 'calendar' | 'code' | 'zap' | 'star' | 'award';
+    points: number;
+}
+
+export interface Language {
+    name: string;
+    percentage: number;
+}
+
+export interface Activity {
+    id: string;
+    userId: string;
+    type: 'challenge' | 'contest' | 'badge';
+    name: string;
+    result: string;
+    points: number;
+    time: string;
+    createdAt: string;
 }

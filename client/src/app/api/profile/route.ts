@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
         const user = await prisma.user.findUnique({
             where: { id },
             include: {
-                userProfile: true
+                userProfile: {
+                    include: {
+                        badges: true,
+                        languages: true
+                    }
+                }
             }
         });
 
@@ -38,11 +43,16 @@ export async function GET(req: NextRequest) {
             );
         }
 
+        const pointsBreakdown = await calculatePointsBreakdown(id);
+
         // Remove the password field from the user object
         const { password, ...userWithoutPassword } = user;
 
         return NextResponse.json(
-            { success: true, user: userWithoutPassword },
+            { success: true, user: {
+                ...userWithoutPassword,
+                pointsBreakdown
+            } },
             { status: 200 }
         );
 
@@ -52,6 +62,36 @@ export async function GET(req: NextRequest) {
             { success: false, message: "Something went wrong", error: err instanceof Error ? err.message : 'Unknown error' },
             { status: 500 }
         );
+    }
+}
+
+async function calculatePointsBreakdown(userId: string) {
+    const activities = await prisma.activity.findMany({
+        where: { userId },
+    });
+
+    let challenges = 0;
+    let contests = 0;
+    let badges = 0;
+    let discussions = 0;
+
+    activities.forEach(activity => {
+        if (activity.type === 'challenge') {
+            challenges += activity.points;
+        } else if (activity.type === 'contest') {
+            contests += activity.points;
+        } else if (activity.type === 'badge') {
+            badges += activity.points;
+        } else if (activity.type === 'discussion') {
+            discussions += activity.points;
+        }
+    });
+
+    return {
+        challenges,
+        contests,
+        badges, 
+        discussions
     }
 }
 

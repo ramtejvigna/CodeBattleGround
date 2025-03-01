@@ -8,18 +8,6 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-
-declare module "next-auth" {
-    interface Session {
-        user: {
-            id: string;
-            email: string;
-            name?: string | null;
-        }
-    }
-}
-
-
 export const authOptions: NextAuthOptions = {
     adapter: PrismaAdapter(prisma),
     providers: [
@@ -52,7 +40,7 @@ export const authOptions: NextAuthOptions = {
                         id: user.id,
                         email: user.email,
                         name: user.name,
-                        user: user.username
+                        username: user.username
                     };
                 } catch (error) {
                     console.error("Authorization error:", error);
@@ -62,7 +50,18 @@ export const authOptions: NextAuthOptions = {
         }),
         Github({
             clientId: process.env.GITHUB_ID as string,
-            clientSecret: process.env.GITHUB_SECRET as string
+            clientSecret: process.env.GITHUB_SECRET as string,
+            profile(profile) {
+                return {
+                    id: profile.id.toString(),
+                    name: profile.name ?? profile.login,
+                    email: profile.email,
+                    image: profile.avatar_url,
+                    username: profile.login,
+                    githubConnected: true,
+                    githubUsername: profile.login,
+                }
+            }
         }),
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -77,10 +76,31 @@ export const authOptions: NextAuthOptions = {
         newUser: "/onboarding"
     },
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, account }) {
             if (user) {
                 token.id = user.id;
                 token.email = user.email;
+            }
+
+            // If this is a Github sign-in, update the user with Github info
+            if (account?.provider === "github") {
+                try {
+                    const existingUser = await prisma.user.findUnique({
+                        where: { id: user.id }
+                    });
+
+                    if (existingUser) {
+                        await prisma.user.update({
+                            where: { id: user.id },
+                            data: {
+                                githubConnected: true,
+                                githubUsername: user.username,
+                            }
+                        })
+                    }
+                } catch (error) {
+
+                }
             }
             return token;
         },

@@ -1,3 +1,5 @@
+// app/settings/page.tsx
+
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
@@ -18,8 +20,8 @@ import {
     LogOut,
     Edit,
     Upload,
-    Check,
-    X
+    X,
+    Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -67,10 +69,10 @@ const Settings = () => {
                 })
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     setUserData(data.user);
-                    
+
                     // Initialize form data with user data
                     setFormData({
                         name: data.user.name || '',
@@ -79,7 +81,7 @@ const Settings = () => {
                         bio: data.user.userProfile?.bio || '',
                         preferredLanguage: data.user.userProfile?.preferredLanguage || 'javascript'
                     });
-                    
+
                     // Set image preview if user has an image
                     if (data.user.image) {
                         setImagePreview(data.user.image);
@@ -134,16 +136,16 @@ const Settings = () => {
 
     const saveProfile = async () => {
         if (!user) return;
-        
+
         try {
             setSaving(true);
-            
+
             const updateData = {
                 ...formData,
                 image: imagePreview,
                 userId: user.id
             };
-            
+
             const response = await fetch('/api/profile/update', {
                 method: 'POST',
                 headers: {
@@ -151,9 +153,9 @@ const Settings = () => {
                 },
                 body: JSON.stringify(updateData)
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 toast.success("Profile updated successfully");
                 // Update local state with the new data
@@ -196,9 +198,9 @@ const Settings = () => {
                         <div className="flex items-center gap-5">
                             <div className="w-16 h-16 uppercase rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-2xl font-bold text-white relative group overflow-hidden">
                                 {imagePreview ? (
-                                    <img 
-                                        src={imagePreview} 
-                                        alt={userData?.name || 'User'} 
+                                    <img
+                                        src={imagePreview}
+                                        alt={userData?.name || 'User'}
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
@@ -212,11 +214,11 @@ const Settings = () => {
                                 >
                                     <Edit className="w-6 h-6 text-white" />
                                 </motion.div>
-                                <input 
-                                    type="file" 
+                                <input
+                                    type="file"
                                     ref={fileInputRef}
-                                    accept="image/*" 
-                                    className="hidden" 
+                                    accept="image/*"
+                                    className="hidden"
                                     onChange={handleImageUpload}
                                 />
                             </div>
@@ -387,13 +389,13 @@ const Settings = () => {
                                                         className={`w-full px-3 py-2 rounded-md ${theme.isDark ? 'bg-gray-800' : 'bg-white'} border ${theme.isDark ? 'border-gray-600' : 'border-gray-300'}`}
                                                     />
                                                 </div>
-                                                
+
                                                 <div className='w-full'>
                                                     <label className="block text-sm font-semibold mb-1">Preferred Language</label>
                                                     <select
                                                         name="preferredLanguage"
                                                         value={formData.preferredLanguage}
-                                                        onChange={e => setFormData({...formData, preferredLanguage: e.target.value})}
+                                                        onChange={e => setFormData({ ...formData, preferredLanguage: e.target.value })}
                                                         className={`w-full px-3 py-2 rounded-md ${theme.isDark ? 'bg-gray-800' : 'bg-white'} border ${theme.isDark ? 'border-gray-600' : 'border-gray-300'}`}
                                                     >
                                                         <option value="javascript">JavaScript</option>
@@ -424,17 +426,30 @@ const Settings = () => {
                                                         disabled={saving}
                                                         className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md font-medium transition-colors flex items-center gap-2"
                                                     >
-                                                        Save Changes
+                                                        {saving ? (
+                                                            <>
+                                                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                </svg>
+                                                                Saving...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Zap className="w-5 h-5 mr-2" />
+                                                                Save Changes
+                                                            </>
+                                                        )}
                                                     </motion.button>
                                                 </div>
                                             </div>
-                                            
+
                                             <div className='flex flex-col items-center justify-start gap-4'>
                                                 <div className="w-60 h-60 uppercase rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-6xl font-bold text-white relative group overflow-hidden">
                                                     {imagePreview ? (
-                                                        <img 
-                                                            src={imagePreview} 
-                                                            alt={userData?.name || 'User'} 
+                                                        <img
+                                                            src={imagePreview}
+                                                            alt={userData?.name || 'User'}
                                                             className="w-full h-full object-cover"
                                                         />
                                                     ) : (
@@ -454,7 +469,7 @@ const Settings = () => {
                                                     Click to upload a profile photo<br />
                                                     JPG, PNG or GIF. Max 5MB.
                                                 </p>
-                                                
+
                                                 {/* Stats and badges section */}
                                                 <div className={`mt-8 p-4 w-full rounded-lg ${theme.isDark ? 'bg-gray-800' : 'bg-white'} border ${theme.isDark ? 'border-gray-700' : 'border-gray-200'}`}>
                                                     <h3 className="text-lg font-medium mb-3">Profile Stats</h3>

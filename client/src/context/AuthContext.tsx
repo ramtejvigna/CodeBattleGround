@@ -70,6 +70,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 '/profile',
                 '/dashboard',
                 '/challenge',
+                '/certifications',
                 '/settings',
                 '/battles'
             ]
