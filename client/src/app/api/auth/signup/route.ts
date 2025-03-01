@@ -64,7 +64,9 @@ export async function POST(req: NextRequest) {
                         level: 1,
                         points: 0,
                         streakDays: 0,
-                        badges: [] // Initialize badges as an empty array
+                        badges: {
+                            create: []
+                        }
                     }
                 }
             },
