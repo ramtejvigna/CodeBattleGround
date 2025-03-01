@@ -276,7 +276,7 @@ export default function AuthForm() {
                                         className="w-full bg-gray-700 border border-gray-700 rounded-lg px-4 py-2.5 pl-10 text-gray-200 
                                             placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500
                                             transition-all duration-300 group-hover:border-gray-600"
-                                        placeholder="CodeNinja"
+                                        placeholder="CodeBattleGround"
                                     />
                                     <Code className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 
                                         group-hover:text-orange-500 transition-colors duration-300" />
@@ -299,7 +299,7 @@ export default function AuthForm() {
                                         className="w-full bg-gray-700 border border-gray-700 rounded-lg px-4 py-2.5 pl-10 text-gray-200 
                                             placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500
                                             transition-all duration-300 group-hover:border-gray-600"
-                                        placeholder="John Doe"
+                                        placeholder="Vigna Ramtej"
                                     />
                                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 
                                         group-hover:text-orange-500 transition-colors duration-300" />
