@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
             )
         }
 
-        const callbackUrl = encodeURIComponent(`${process.env.NEXTAUTH_URL}/api/auht/callback/github`);
+        const callbackUrl = encodeURIComponent(`${process.env.NEXTAUTH_URL}/api/auth/callback/github`);
         const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_ID}&redirect_uri=${callbackUrl}&scope=user:email,read:user`;
     
         return NextResponse.redirect(githubAuthUrl);
