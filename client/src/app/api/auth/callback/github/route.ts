@@ -1,5 +1,3 @@
-// /api/auth/callback/github/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
@@ -29,17 +27,34 @@ export async function GET(req: NextRequest) {
             return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/profile?error=Failed+to+get+GitHub+user+info`);
         }
 
-        // Update user in database
-        await prisma.user.update({
-            where: { id: session?.user.id },
-            data: {
-                githubConnected: true,
-                githubUsername: githubUser.login
-            }
-        });
+        if (session) {
+            // User is already logged in, update their account with GitHub info
+            await prisma.user.update({
+                where: { id: session.user.id },
+                data: {
+                    githubConnected: true,
+                    githubUsername: githubUser.login
+                }
+            });
 
-        // Redirect back to profile with success message
-        return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/profile?success=GitHub+connected`);
+            return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/profile?success=GitHub+connected`);
+        } else {
+            // User is not logged in, create a new account with GitHub info
+            await prisma.user.create({
+                data: {
+                    email: githubUser.email || `${githubUser.login}@github.com`, // Fallback email if GitHub email is not provided
+                    name: githubUser.name || githubUser.login,
+                    username: githubUser.login, // Add required username field
+                    githubConnected: true,
+                    githubUsername: githubUser.login
+                }
+            });
+
+            // Here you would typically log the user in using the newly created account
+            // For example, you might create a session or JWT token for the user
+
+            return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/profile?success=GitHub+login+successful`);
+        }
     } catch (error) {
         console.error('Error in GitHub callback:', error);
         return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/profile?error=Internal+server+error`);
