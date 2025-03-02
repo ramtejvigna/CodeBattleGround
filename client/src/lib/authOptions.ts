@@ -65,7 +65,16 @@ export const authOptions: NextAuthOptions = {
         }),
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID as string,
-            clientSecret: process.env.GOOGLE_CLIENT_SECERT as string
+            clientSecret: process.env.GOOGLE_CLIENT_SECERT as string,
+            profile(profile) {
+                return {
+                    id: profile.sub,
+                    name: profile.name,
+                    email: profile.email,
+                    image: profile.picture,
+                    username: profile.email.split('@')[0]
+                }
+            }
         })
     ],
     session: {
@@ -80,6 +89,10 @@ export const authOptions: NextAuthOptions = {
             if (user) {
                 token.id = user.id;
                 token.email = user.email;
+                token.name = user.name;
+                if ('username' in user) {
+                    token.username = user.username;
+                }
             }
 
             // If this is a Github sign-in, update the user with Github info
@@ -99,7 +112,7 @@ export const authOptions: NextAuthOptions = {
                         })
                     }
                 } catch (error) {
-
+                    console.error("Error updating GitHub info : ", error);
                 }
             }
             return token;
@@ -108,8 +121,34 @@ export const authOptions: NextAuthOptions = {
             if (session.user) {
                 session.user.id = token.id as string;
                 session.user.email = token.email as string;
+                if (token.username) {
+                    session.user.username = token.username as string;
+                }
             }
             return session;
+        },
+        async signIn({ user, account, profile }) {
+            try {
+                if (account?.provider === 'github' || account?.provider === 'google') {
+                    const dbUser = await prisma.user.findUnique({
+                        where: { id: user.id },
+                        include: {
+                            userProfile: true
+                        }
+                    })
+
+                    if(!dbUser?.userProfile) return true;
+                }
+                return true;
+            } catch (error) {
+                console.error("Error in signIn callback : ", error);
+                return true;
+            }
+        }
+    },
+    events: {
+        async createUser({ user }) {
+            console.log(`New user created: ${user.id}`);
         }
     }
 };

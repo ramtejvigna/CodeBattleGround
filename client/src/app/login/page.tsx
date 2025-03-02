@@ -135,9 +135,12 @@ export default function AuthForm() {
     const handleSocialLogin = async (provider: 'google' | 'github') => {
         setLoading(true);
         try {
-            window.location.href = `/api/auth/${provider}`;
+            await signIn(provider, { 
+                callbackUrl: '/'  // Redirect to home for existing users
+            });
         } catch (err) {
             setError('Failed to initialize social login');
+            console.error(err);
             setLoading(false);
         }
     };

@@ -138,13 +138,9 @@ export default function AuthForm() {
     const handleSocialLogin = async (provider: 'google' | 'github') => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/auth/${provider}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+            await signIn(provider, { 
+                callbackUrl: '/onboarding'
             });
-
-            console.log(response);
         } catch (err) {
             setError('Failed to initialize social login');
             console.error(err);
