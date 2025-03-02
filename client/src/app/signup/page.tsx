@@ -139,7 +139,7 @@ export default function AuthForm() {
         setLoading(true);
         try {
             await signIn(provider, { 
-                callbackUrl: '/onboarding'
+                redirectTo: '/onboarding'
             });
         } catch (err) {
             setError('Failed to initialize social login');

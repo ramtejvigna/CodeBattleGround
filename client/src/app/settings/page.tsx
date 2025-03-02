@@ -53,35 +53,35 @@ const Settings = () => {
         email: '',
         phone: '',
         bio: '',
-        preferredLanguage: 'javascript'
+        preferredLanguage: ''
     });
 
     useEffect(() => {
         const fetchUserData = async () => {
             if (!user) return;
-
+    
             try {
                 setLoading(true);
-
+    
                 const response = await fetch(`/api/profile?id=${user.id}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' }
-                })
-
+                });
+    
                 const data = await response.json();
-
+    
                 if (data.success) {
                     setUserData(data.user);
-
+    
                     // Initialize form data with user data
                     setFormData({
                         name: data.user.name || '',
                         email: data.user.email || '',
                         phone: data.user.userProfile?.phone || '',
                         bio: data.user.userProfile?.bio || '',
-                        preferredLanguage: data.user.userProfile?.preferredLanguage || 'javascript'
+                        preferredLanguage: data.user.userProfile?.preferredLanguage || 'javascript' // Ensure this is set correctly
                     });
-
+    
                     // Set image preview if user has an image
                     if (data.user.image) {
                         setImagePreview(data.user.image);
@@ -96,7 +96,7 @@ const Settings = () => {
                 setLoading(false);
             }
         };
-
+    
         fetchUserData();
     }, [user]);
 
@@ -394,7 +394,7 @@ const Settings = () => {
                                                     <label className="block text-sm font-semibold mb-1">Preferred Language</label>
                                                     <select
                                                         name="preferredLanguage"
-                                                        value={formData.preferredLanguage}
+                                                        value={formData.preferredLanguage} // Ensure this is correctly bound
                                                         onChange={e => setFormData({ ...formData, preferredLanguage: e.target.value })}
                                                         className={`w-full px-3 py-2 rounded-md ${theme.isDark ? 'bg-gray-800' : 'bg-white'} border ${theme.isDark ? 'border-gray-600' : 'border-gray-300'}`}
                                                     >

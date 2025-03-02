@@ -1,7 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import Github from "next-auth/providers/github";
-import Google from "next-auth/providers/google";
+import GithubProvider from "next-auth/providers/github";
+import GoogleProvider from "next-auth/providers/google";
 import { PrismaClient } from "@prisma/client";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcryptjs";
@@ -48,14 +48,15 @@ export const authOptions: NextAuthOptions = {
                 }
             }
         }),
-        Github({
+        GithubProvider({
             clientId: process.env.GITHUB_ID as string,
             clientSecret: process.env.GITHUB_SECRET as string,
             profile(profile) {
+                console.log(profile)
                 return {
                     id: profile.id.toString(),
                     name: profile.name ?? profile.login,
-                    email: profile.email,
+                    email: profile.email ?? `${profile.login}@github.com`,
                     image: profile.avatar_url,
                     username: profile.login,
                     githubConnected: true,
@@ -63,9 +64,9 @@ export const authOptions: NextAuthOptions = {
                 }
             }
         }),
-        Google({
+        GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID as string,
-            clientSecret: process.env.GOOGLE_CLIENT_SECERT as string,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
             profile(profile) {
                 return {
                     id: profile.sub,
@@ -75,7 +76,7 @@ export const authOptions: NextAuthOptions = {
                     username: profile.email.split('@')[0]
                 }
             }
-        })
+        }),
     ],
     session: {
         strategy: "jwt"
@@ -93,28 +94,14 @@ export const authOptions: NextAuthOptions = {
                 if ('username' in user) {
                     token.username = user.username;
                 }
-            }
-
-            // If this is a Github sign-in, update the user with Github info
-            if (account?.provider === "github") {
-                try {
-                    const existingUser = await prisma.user.findUnique({
-                        where: { id: user.id }
-                    });
-
-                    if (existingUser) {
-                        await prisma.user.update({
-                            where: { id: user.id },
-                            data: {
-                                githubConnected: true,
-                                githubUsername: user.username,
-                            }
-                        })
-                    }
-                } catch (error) {
-                    console.error("Error updating GitHub info : ", error);
+                if ('githubUsername' in user) {
+                    token.githubUsername = user.githubUsername;
+                }
+                if ('githubConnected' in user) {
+                    token.githubConnected = user.githubConnected;
                 }
             }
+
             return token;
         },
         async session({ session, token }) {
@@ -124,6 +111,12 @@ export const authOptions: NextAuthOptions = {
                 if (token.username) {
                     session.user.username = token.username as string;
                 }
+                if (token.githubUsername) {
+                    session.user.githubUsername = token.githubUsername as string;
+                }
+                if (token.githubConnected) {
+                    session.user.githubConnected = token.githubConnected as boolean;
+                }
             }
             return session;
         },
@@ -131,24 +124,32 @@ export const authOptions: NextAuthOptions = {
             try {
                 if (account?.provider === 'github' || account?.provider === 'google') {
                     const dbUser = await prisma.user.findUnique({
-                        where: { id: user.id },
+                        where: { email: user.email ?? undefined },
                         include: {
                             userProfile: true
                         }
-                    })
+                    });
 
-                    if(!dbUser?.userProfile) return true;
+                    // Create user profile if it doesn't exist
+                    if (dbUser && !dbUser.userProfile) {
+                        await prisma.userProfile.create({
+                            data: {
+                                userId: dbUser.id,
+                                preferredLanguage: 'JavaScript',
+                                rank: 0,
+                                solved: 0,
+                                level: 1,
+                                points: 0,
+                                streakDays: 0
+                            }
+                        });
+                    }
                 }
                 return true;
             } catch (error) {
-                console.error("Error in signIn callback : ", error);
-                return true;
+                console.error("Error in signIn callback:", error);
+                return true; // Continue with sign in even if profile creation fails
             }
-        }
-    },
-    events: {
-        async createUser({ user }) {
-            console.log(`New user created: ${user.id}`);
         }
     }
 };
