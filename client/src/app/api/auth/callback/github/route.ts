@@ -9,10 +9,6 @@ export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
 
-        if (!session || !session.user.id) {
-            return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/login?error=Unauthorized`);
-        }
-
         const url = new URL(req.url);
         const code = url.searchParams.get('code');
 
@@ -35,7 +31,7 @@ export async function GET(req: NextRequest) {
 
         // Update user in database
         await prisma.user.update({
-            where: { id: session.user.id },
+            where: { id: session?.user.id },
             data: {
                 githubConnected: true,
                 githubUsername: githubUser.login
