@@ -17,15 +17,16 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { User } from '@/lib/interfaces';
 
 const Home = () => {
   const [currentChallenge, setCurrentChallenge] = useState(0);
   const [codeTyped, setCodeTyped] = useState('');
   const [cursor, setCursor] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
   const { user } = useAuth();
 
   const exampleCode = `function findWinner(scores) {\n  return scores\n    .sort((a, b) => b.points - a.points)\n    .map(player => player.name)[0];\n}`;
-
 
   const challenges = [
     { title: "Algorithm Showdown", difficulty: "Hard", participants: 245, timeLeft: "2d 14h" },
@@ -61,15 +62,50 @@ const Home = () => {
       clearInterval(cursorEffect);
       clearInterval(challengeRotation);
     };
-  }, [challenges.length, exampleCode]); // Fixed dependencies
+  }, [challenges.length, exampleCode]);
 
-  const leaderboard = [
-    { rank: 1, name: "CodeNinja", points: 12560, badge: "🏆" },
-    { rank: 2, name: "BinaryBeast", points: 11840, badge: "🥈" },
-    { rank: 3, name: "AlgoMaster", points: 10920, badge: "🥉" },
-    { rank: 4, name: "ByteWarrior", points: 9870, badge: "" },
-    { rank: 5, name: "DevDestroyer", points: 9340, badge: "" }
-  ];
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('/api/allUsers', {
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        if (data.success && data.user) {
+          setUsers(data.user);
+        } else {
+          console.error('Failed to fetch users:', data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // Sort the leaderboard data by rank
+  const leaderboard = users && users.length > 0
+  ? users
+    .sort((a, b) => (a.userProfile?.rank ?? Infinity) - (b.userProfile?.rank ?? Infinity)) // Use optional chaining and nullish coalescing
+    .map(player => {
+      // Assign badges based on rank
+      let badge = "";
+      if (player.userProfile?.rank === 1) badge = "🏆";
+      else if (player.userProfile?.rank === 2) badge = "🥈";
+      else if (player.userProfile?.rank === 3) badge = "🥉";
+      else if (player.userProfile?.rank && player.userProfile.rank <= 10) badge = "⭐";
+      
+      return {
+        ...player,
+        badge
+      };
+    })
+  : [];
 
   return (
     <div className="bg-gray-900 min-h-screen text-gray-200">
@@ -147,14 +183,16 @@ const Home = () => {
             {challenges.map((challenge, index) => (
               <div
                 key={index}
-                className={`bg-gray-800 border border-gray-700 rounded-lg p-4 transition-all duration-300 hover:border-orange-500 hover:shadow-lg hover:shadow-orange-900/20 ${index === currentChallenge ? 'border-orange-500 shadow-lg shadow-orange-900/20 scale-105' : ''
-                  }`}
+                className={`bg-gray-800 border border-gray-700 rounded-lg p-4 transition-all duration-300 hover:border-orange-500 hover:shadow-lg hover:shadow-orange-900/20 ${
+                  index === currentChallenge ? 'border-orange-500 shadow-lg shadow-orange-900/20 scale-105' : ''
+                }`}
               >
                 <div className="flex justify-between items-start mb-3">
-                  <span className={`text-xs px-2 py-1 rounded-full ${challenge.difficulty === "Hard" ? "bg-red-500/20 text-red-400" :
-                      challenge.difficulty === "Medium" ? "bg-yellow-500/20 text-yellow-400" :
-                        "bg-purple-500/20 text-purple-400"
-                    }`}>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    challenge.difficulty === "Hard" ? "bg-red-500/20 text-red-400" :
+                    challenge.difficulty === "Medium" ? "bg-yellow-500/20 text-yellow-400" :
+                    "bg-purple-500/20 text-purple-400"
+                  }`}>
                     {challenge.difficulty}
                   </span>
                   <Code className="text-gray-500" />
@@ -204,12 +242,15 @@ const Home = () => {
               {leaderboard.map((player, index) => (
                 <tr
                   key={index}
-                  className={`border-t border-gray-700 hover:bg-gray-750 transition-colors ${index === 0 ? 'bg-gradient-to-r from-orange-900/20 to-transparent' : ''
-                    }`}
+                  className={`border-t border-gray-700 hover:bg-gray-750 transition-colors ${
+                    player.userProfile?.rank === 1 ? 'bg-gradient-to-r from-orange-900/20 to-transparent' : 
+                    player.userProfile?.rank === 2 ? 'bg-gradient-to-r from-gray-700/30 to-transparent' :
+                    player.userProfile?.rank === 3 ? 'bg-gradient-to-r from-yellow-700/20 to-transparent' : ''
+                  }`}
                 >
-                  <td className="py-4 px-6 font-mono">{player.rank}</td>
+                  <td className="py-4 px-6 font-mono">{player.userProfile?.rank}</td>
                   <td className="py-4 px-6 font-semibold">{player.name}</td>
-                  <td className="py-4 px-6 text-orange-400 font-mono">{player.points.toLocaleString()}</td>
+                  <td className="py-4 px-6 text-orange-400 font-mono">{player.userProfile?.points.toLocaleString()}</td>
                   <td className="py-4 px-6 text-right">{player.badge}</td>
                 </tr>
               ))}

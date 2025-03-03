@@ -6,36 +6,16 @@ import Link from 'next/link';
 import Image from 'next/image'; // Import the Image component
 
 const AboutPage = () => {
-    // Team members data
-    const teamMembers = [
-        {
-            name: "Alex Morgan",
-            role: "Founder & Lead Developer",
-            image: "/images/2101727.jpg", // Update the path accordingly
-            bio: "Former Google engineer with 12+ years of experience in competitive programming and algorithm design.",
-            github: "#",
-            twitter: "#",
-            linkedin: "#"
-        },
-        {
-            name: "Sarah Chen",
-            role: "Head of Curriculum",
-            image: "/images/Me.jpg", // Update the path accordingly
-            bio: "PhD in Computer Science with experience designing technical interview systems for top tech companies.",
-            github: "#",
-            twitter: "#",
-            linkedin: "#"
-        },
-        {
-            name: "Marcus Williams",
-            role: "Community Manager",
-            image: "/images/Ram.jpg", // Update the path accordingly
-            bio: "Passionate about fostering inclusive coding communities and organizing competitive programming events.",
-            github: "#",
-            twitter: "#",
-            linkedin: "#"
-        }
-    ];
+    // Team developers data
+    const developer = {
+        name: "Vigna Ramtej Telagarapu",
+        role: "Software Developer",
+        image: "/images/Me.jpg", // Update the path accordingly
+        bio: "B.tech in Artificial Intelligence and Data Science with experience in Full Stack Web Developement and Data Science ",
+        github: "https://github.com/ramtejvigna",
+        twitter: "https://x.com/ramtejvigna46",
+        linkedin: "https://www.linkedin.com/in/vignaramtej"
+    }
 
     // Platform statistics
     const statistics = [
@@ -144,7 +124,7 @@ const AboutPage = () => {
                 </div>
             </div>
 
-            {/* Story Section */}
+            {/* Story Section
             <div className="py-16 bg-gray-800">
                 <div className="container mx-auto px-8 max-w-4xl">
                     <h2 className="text-3xl font-bold mb-8 text-center">Our Story</h2>
@@ -160,7 +140,7 @@ const AboutPage = () => {
                         </p>
                     </div>
                 </div>
-            </div>
+            </div> */}
 
             {/* Core Values */}
             <div className="py-16 bg-gray-900">
@@ -181,37 +161,33 @@ const AboutPage = () => {
             </div>
 
             {/* Team Section */}
-            <div className="py-16 bg-gray-800">
+            <div className="py-16 bg-gray-900">
                 <div className="container mx-auto px-8 max-w-5xl">
-                    <h2 className="text-3xl font-bold mb-12 text-center">Meet Our Team</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {teamMembers.map((member, index) => (
-                            <div key={index} className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 hover:border-gray-600 transition-all duration-300">
-                                <div className="p-6 text-center">
-                                    <Image
-                                        src={member.image}
-                                        alt={member.name}
-                                        width={96}
-                                        height={96}
-                                        className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-orange-500"
-                                    />
-                                    <h3 className="text-xl font-semibold mb-1">{member.name}</h3>
-                                    <p className="text-orange-500 text-sm mb-4">{member.role}</p>
-                                    <p className="text-gray-400 text-sm mb-6">{member.bio}</p>
-                                    <div className="flex justify-center gap-4">
-                                        <a href={member.github} className="text-gray-400 hover:text-white transition-colors duration-300">
-                                            <Github size={18} />
-                                        </a>
-                                        <a href={member.twitter} className="text-gray-400 hover:text-white transition-colors duration-300">
-                                            <Twitter size={18} />
-                                        </a>
-                                        <a href={member.linkedin} className="text-gray-400 hover:text-white transition-colors duration-300">
-                                            <Linkedin size={18} />
-                                        </a>
-                                    </div>
-                                </div>
+                    <h2 className="text-3xl font-bold mb-12 text-center">Developed by</h2>
+                    <div className="grid grid-cols-1 items-center md:grid-cols-2 gap-8">
+                        <Image
+                            src={developer.image}
+                            alt={developer.name}
+                            width={240}
+                            height={200}
+                            className="rounded-full mx-auto mb-4 border-2 border-orange-500"
+                        />
+                        <div>
+                            <h3 className="text-xl font-semibold mb-1">{developer.name}</h3>
+                            <p className="text-orange-500 text-sm mb-4">{developer.role}</p>
+                            <p className="text-gray-400 text-sm mb-6">{developer.bio}</p>
+                            <div className="flex gap-4">
+                                <a href={developer.github} className="text-gray-400 hover:text-white transition-colors duration-300">
+                                    <Github size={18} />
+                                </a>
+                                <a href={developer.twitter} className="text-gray-400 hover:text-white transition-colors duration-300">
+                                    <Twitter size={18} />
+                                </a>
+                                <a href={developer.linkedin} className="text-gray-400 hover:text-white transition-colors duration-300">
+                                    <Linkedin size={18} />
+                                </a>
                             </div>
-                        ))}
+                        </div>
                     </div>
                 </div>
             </div>
