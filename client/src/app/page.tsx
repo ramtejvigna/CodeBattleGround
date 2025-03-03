@@ -92,6 +92,7 @@ const Home = () => {
   const leaderboard = users && users.length > 0
   ? users
     .sort((a, b) => (a.userProfile?.rank ?? Infinity) - (b.userProfile?.rank ?? Infinity)) // Use optional chaining and nullish coalescing
+    .slice(0, 10)
     .map(player => {
       // Assign badges based on rank
       let badge = "";
