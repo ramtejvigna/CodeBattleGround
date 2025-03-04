@@ -3,10 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { Github, Twitter, Linkedin, Code, Heart } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 
 const Footer = () => {
+    const { theme } = useTheme(); 
+
     return (
-        <footer className="border-t border-gray-800 mt-auto">
+        <footer className={`${theme === 'dark' ? 'bg-black text-gray-300' : 'bg-white text-black'} border-t border-gray-800 mt-auto`}>
             <div className="max-w-7xl mx-auto px-8 py-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {/* Logo and Tagline Section */}
@@ -20,12 +23,12 @@ const Footer = () => {
                                 <span className="text-[9px] leading-[0] self-end tracking-wider text-gray-400">Ground</span>
                             </h1>
                         </Link>
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-sm">
                             Where code warriors clash and algorithms triumph.
                             <br />
                             <span className="text-xs opacity-75">Sharpen your skills. Rise in the ranks.</span>
                         </p>
-                        <div className="flex space-x-4 text-gray-400">
+                        <div className="flex space-x-4 ">
                             <Link href="https://github.com" className="hover:text-orange-500 transition-colors duration-300">
                                 <Github size={18} />
                             </Link>
@@ -40,30 +43,30 @@ const Footer = () => {
 
                     {/* Quick Links Section */}
                     <div className="flex flex-col space-y-4">
-                        <h3 className="text-gray-300 font-semibold text-sm uppercase tracking-wider">Quick Links</h3>
+                        <h3 className="font-semibold text-sm uppercase tracking-wider">Quick Links</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
-                                <Link href="/challenges" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center gap-2">
+                                <Link href="/challenges" className=" hover:text-orange-500 transition-colors duration-300 flex items-center gap-2">
                                     Challenges
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/leaderboard" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center gap-2">
+                                <Link href="/leaderboard" className=" hover:text-orange-500 transition-colors duration-300 flex items-center gap-2">
                                     Leaderboard
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/tutorials" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center gap-2">
+                                <Link href="/tutorials" className=" hover:text-orange-500 transition-colors duration-300 flex items-center gap-2">
                                     Tutorials
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/community" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center gap-2">
+                                <Link href="/community" className=" hover:text-orange-500 transition-colors duration-300 flex items-center gap-2">
                                     Community
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/blog" className="text-gray-400 hover:text-orange-500 transition-colors duration-300 flex items-center gap-2">
+                                <Link href="/blog" className=" hover:text-orange-500 transition-colors duration-300 flex items-center gap-2">
                                     Blog
                                 </Link>
                             </li>
@@ -72,8 +75,8 @@ const Footer = () => {
 
                     {/* Newsletter Section */}
                     <div className="flex flex-col space-y-4">
-                        <h3 className="text-gray-300 font-semibold text-sm uppercase tracking-wider">Join The Battle</h3>
-                        <p className="text-gray-400 text-sm">Stay updated with the latest challenges and features.</p>
+                        <h3 className="font-semibold text-sm uppercase tracking-wider">Join The Battle</h3>
+                        <p className="text-sm">Stay updated with the latest challenges and features.</p>
                         <div className="relative">
                             <input
                                 type="email"
@@ -93,7 +96,7 @@ const Footer = () => {
 
                 {/* Bottom Section */}
                 <div className="pt-8 mt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
-                    <div className="text-gray-500 text-xs flex items-center mb-4 md:mb-0">
+                    <div className="text-xs flex items-center mb-4 md:mb-0">
                         <Code size={14} className="mr-2" />
                         <span>
                             Made with <Heart size={12} className="inline text-orange-500 mx-1" /> by{" "}
@@ -103,7 +106,7 @@ const Footer = () => {
                         </span>
                     </div>
 
-                    <div className="flex space-x-4 text-xs text-gray-500">
+                    <div className="flex space-x-4 text-xs ">
                         <Link href="/terms" className="hover:text-gray-300 transition-colors duration-300">
                             Terms
                         </Link>

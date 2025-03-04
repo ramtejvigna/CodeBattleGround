@@ -23,6 +23,11 @@ model User {
     activites           Activity[]
     createdAt           DateTime     @default(now())
     updatedAt           DateTime     @updatedAt
+
+    createChallenges    Challenge[]  @relation("ChallengeCreator")
+    submissions         Submission[]
+    challengeAttempts   ChallengeAttempt[]
+    challengeLikes      ChallengeLike[]
 }
 
 model UserProfile {
@@ -105,6 +110,103 @@ model Language {
   name        String
   percentage  Float
   userProfile UserProfile[]
+  challenges  Challenge[]    @relation("ChallengeLanguages")
+  submissions Submission[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+}
+
+model Challenge {
+  id              String            @id @default(cuid())
+  title           String
+  description     String            @db.Text
+  difficulty      Difficulty
+  points          Int
+  creatorId       String
+  creator         User              @relation("ChallengeCreator", fields: [creatorId], references: [id])
+  testCases       TestCase[]
+  languages       Language[]        @relation("ChallengeLanguages")
+  submissions     Submission[]
+  attempts        ChallengeAttempt[]
+  likes           ChallengeLike[]
+  category        ChallengeCategory @relation(fields: [categoryId], references: [id])
+  categoryId      String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  starterCode     Json              // Map of language ID to starter code
+  timeLimit       Int               // Time limit in seconds
+  memoryLimit     Int               // Memory limit in MB
+}
+
+model ChallengeCategory {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  challenges  Challenge[]
+}
+
+model TestCase {
+  id          String    @id @default(cuid())
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  input       String    @db.Text
+  output      String    @db.Text
+  isHidden    Boolean   @default(false)
+  explanation String?   @db.Text
+}
+
+model Submission {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  code        String    @db.Text
+  languageId  String
+  language    Language  @relation(fields: [languageId], references: [id])
+  status      SubmissionStatus
+  runtime     Int?      // in milliseconds
+  memory      Int?      // in KB
+  createdAt   DateTime  @default(now())
+  testResults Json?     // Results of each test case
+}
+
+model ChallengeAttempt {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  successful  Boolean?
+}
+
+model ChallengeLike {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  isLike      Boolean   // true for like, false for dislike
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, challengeId])
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+enum SubmissionStatus {
+  PENDING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  COMPILATION_ERROR
 }

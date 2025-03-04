@@ -7,6 +7,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { UserProfileProvider } from "@/context/UserProfileContext";
 import { Toaster } from "react-hot-toast";
 import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 export default function ClientLayout({
     children,
@@ -25,9 +26,11 @@ export default function ClientLayout({
         <SessionProvider>
             <AuthProvider>
                 <UserProfileProvider>
-                    {shouldShowNavBarFooter && <NavBar />}
-                    {children}
-                    {shouldShowNavBarFooter && <Footer />}
+                    <ThemeProvider>
+                        {shouldShowNavBarFooter && <NavBar />}
+                        {children}
+                        {shouldShowNavBarFooter && <Footer />}
+                    </ThemeProvider>
                 </UserProfileProvider>
                 <Toaster position="top-right" />
             </AuthProvider>

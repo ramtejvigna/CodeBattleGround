@@ -2,18 +2,19 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Search, Grip, LogIn, UserPlus, LogOut } from 'lucide-react';
+import { Search, Grip, LogIn, UserPlus, LogOut, Moon, Sun } from 'lucide-react';
 import GridModel from './GridModel';
 import { useAuth } from '@/context/AuthContext';
 import Loader from '../Loader';
 import { useUserProfile } from '@/context/UserProfileContext';
+import { useTheme } from '@/context/ThemeContext'; // Import the useTheme hook
 
 const NavBar = () => {
     const [searchFocus, setSearchFocus] = useState(false);
     const [gridModel, setGridModel] = useState(false);
+    const { theme, setTheme } = useTheme(); // Use the theme context
 
     const { userData, loading } = useUserProfile(); 
-
     const { user, logout } = useAuth();
 
     if(loading) {
@@ -21,8 +22,8 @@ const NavBar = () => {
     }
 
     return (
-        <div className=''>
-            <nav className="flex flex-row justify-between items-center p-4 px-8">
+        <div>
+            <nav className={`flex ${theme === 'dark' ? 'bg-gray-900 text-gray-300' : 'text-black'} flex-row justify-between items-center p-4 px-8`}>
                 {/* Logo Section */}
                 <Link href="/" className="flex-shrink-0">
                     <h1 className="cursor-pointer uppercase font-[family-name:var(--font-kanit-sans)] flex flex-col select-none">
@@ -55,7 +56,7 @@ const NavBar = () => {
                 </div>
 
                 {/* Navigation Links */}
-                <div className="text-gray-300 flex-shrink-0">
+                <div className="flex-shrink-0">
                     <ul className="flex flex-row items-center gap-8 text-sm">
                         <li>
                             <Link href="/about" className="relative group">
@@ -80,6 +81,13 @@ const NavBar = () => {
                         </li>
 
                         <span className='opacity-40'>|</span>
+
+                        {/* Theme Toggler */}
+                        <li>
+                            <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} className="cursor-pointer transition-colors duration-300">
+                                {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                            </button>
+                        </li>
 
                         {user ? (
                             <>
