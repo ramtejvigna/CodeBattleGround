@@ -23,7 +23,7 @@ const NavBar = () => {
 
     return (
         <div>
-            <nav className={`flex ${theme === 'dark' ? 'bg-gray-900 text-gray-300' : 'text-black'} flex-row justify-between items-center p-4 px-8`}>
+            <nav className={`flex ${theme === 'dark' ? 'bg-gray-900 text-gray-300' : 'text-black'} flex-row justify-between items-center border-b p-4 px-8`}>
                 {/* Logo Section */}
                 <Link href="/" className="flex-shrink-0">
                     <h1 className="cursor-pointer uppercase font-[family-name:var(--font-kanit-sans)] flex flex-col select-none">
@@ -41,9 +41,9 @@ const NavBar = () => {
                         <input
                             type="text"
                             placeholder="Search battles, challenges, warriors..."
-                            className="w-full bg-gray-800 border-2 border-gray-700 rounded-lg py-2 pl-4 pr-10 text-gray-300 
-                                     placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500
-                                     transition-all duration-300"
+                            className={`w-full border-2 rounded-lg py-2 pl-4 pr-10 ${theme === 'dark'? 'text-gray-300 bg-gray-800 border-gray-700 \
+                                     placeholder-gray-500' : ''} focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 \
+                                     transition-all duration-300`}
                             onFocus={() => setSearchFocus(true)}
                             onBlur={() => setSearchFocus(false)}
                         />
