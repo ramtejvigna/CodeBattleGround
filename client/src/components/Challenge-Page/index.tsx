@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import { Search, Filter, Zap } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -30,7 +30,8 @@ interface Challenge {
     isFavorite?: boolean
 }
 
-export default function ChallengesPage() {
+// Create a client component that uses useSearchParams
+function ChallengesContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -326,5 +327,14 @@ export default function ChallengesPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+// Main export with Suspense
+export default function ChallengesPage() {
+    return (
+        <Suspense fallback={<Loader />}>
+            <ChallengesContent />
+        </Suspense>
     )
 }
