@@ -21,7 +21,6 @@ import {
 } from "lucide-react"
 import Loader from "@/components/Loader"
 import CodeEditor from "@/components/CodeEditor"
-import { runCodeLocally, submitChallengeSolution } from "@/lib/actions/challenge-actions"
 import Link from "next/link"
 
 // Types
@@ -35,7 +34,6 @@ interface TestCase {
 interface Language {
     id: string
     name: string
-    starterCode: string
 }
 
 interface Challenge {
@@ -45,8 +43,9 @@ interface Challenge {
     difficulty: "EASY" | "MEDIUM" | "HARD" | "EXPERT"
     points: number
     category: { name: string }
-    languages: Language[]
     testCases: TestCase[]
+    starterCode: StarterCode
+    handlerCode: StarterCode
     likes: number
     submissions: number
     timeLimit: number
@@ -69,6 +68,10 @@ interface TestResult {
     passed: boolean
 }
 
+interface StarterCode {
+    [key: string]: string
+}
+
 const ChallengePage = () => {
     const { id } = useParams()
     const { theme } = useTheme()
@@ -77,8 +80,9 @@ const ChallengePage = () => {
     // State
     const [challenge, setChallenge] = useState<Challenge | null>(null)
     const [loading, setLoading] = useState(true)
-    const [selectedLanguage, setSelectedLanguage] = useState<string>("")
+    const [selectedLanguage, setSelectedLanguage] = useState<string>("JavaScript")
     const [code, setCode] = useState<string>("")
+    const [languages, setLanguages] = useState<Language[]>([])
     const [testResults, setTestResults] = useState<TestResult[] | null>(null)
     const [isRunning, setIsRunning] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -91,43 +95,58 @@ const ChallengePage = () => {
     useEffect(() => {
         const fetchChallenge = async () => {
             try {
-                const response = await fetch(`/api/challenges/${id}`)
-                const data = await response.json()
+                const response = await fetch(`/api/challenges/${id}`);
+                const data = await response.json();
 
                 if (data.id) {
-                    setChallenge(data)
+                    setChallenge(data);
 
-                    // Set default language and code
-                    if (data.languages.length > 0) {
-                        setSelectedLanguage(data.languages[0].id)
-                        setCode(data.languages[0].starterCode)
+                    // Set the initial code for the selected language
+                    if (selectedLanguage && data.starterCode[selectedLanguage.toLowerCase()]) {
+                        setCode(data.starterCode[selectedLanguage.toLowerCase()]);
                     }
                 }
             } catch (error) {
-                console.error("Error fetching challenge:", error)
+                console.error("Error fetching challenge:", error);
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
-        }
+        };
+
+        const fetchLanguages = async () => {
+            setLoading(true);
+            try {
+                const response = await fetch(`/api/languages`);
+                const data = await response.json();
+                setLanguages(data.languages);
+
+                // Set the default selected language to the first language
+                if (data.languages.length > 0) {
+                    setSelectedLanguage(data.languages[0].name);
+                }
+            } catch (error) {
+                console.error("Error fetching languages:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
         if (id) {
-            fetchChallenge()
+            fetchLanguages();
+            fetchChallenge();
         }
-    }, [id])
+    }, [id]);
 
     // Handle language change
     const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const langId = e.target.value
-        setSelectedLanguage(langId)
+        const langName = e.target.value;
+        setSelectedLanguage(langName);
 
-        // Update code with starter code for selected language
-        if (challenge) {
-            const lang = challenge.languages.find((l) => l.id === langId)
-            if (lang) {
-                setCode(lang.starterCode)
-            }
+        // Update code with starter code for the selected language
+        if (challenge && challenge.starterCode[langName.toLowerCase()]) {
+            setCode(challenge.starterCode[langName.toLowerCase()]);
         }
-    }
+    };
 
     // Run code
     const handleRunCode = async () => {
@@ -139,19 +158,20 @@ const ChallengePage = () => {
         setMemory(null)
 
         try {
-            const result = await runCodeLocally({
-                challengeId: challenge.id,
-                code,
-                languageId: selectedLanguage,
-            })
+            // const result = await runCodeLocally({
+            //     challengeId: challenge.id,
+            //     code,
+            //     languageId: selectedLanguage,
+            // })
 
-            if (result.success && result.testResults) {
-                setTestResults(result.testResults)
-                setRuntime(result.runtime)
-                setMemory(result.memory)
-            } else {
-                console.error("Error running code:", result.error)
-            }
+            // if (result.success && result.testResults) {
+            //     setTestResults(result.testResults)
+            //     setRuntime(result.runtime)
+            //     setMemory(result.memory)
+            // } else {
+            //     console.error("Error running code:", result.error)
+            // }
+            console.log("Code is running");
         } catch (error) {
             console.error("Error running code:", error)
         } finally {
@@ -167,18 +187,20 @@ const ChallengePage = () => {
         setSubmissionStatus(null)
 
         try {
-            const result = await submitChallengeSolution({
-                challengeId: challenge.id,
-                userId: user.id,
-                code,
-                languageId: selectedLanguage,
-            })
+            // const result = await submitChallengeSolution({
+            //     challengeId: challenge.id,
+            //     userId: user.id,
+            //     code,
+            //     languageId: selectedLanguage,
+            // })
 
-            if (result.success && result.status) {
-                setSubmissionStatus(result.status)
-            } else {
-                console.error("Error submitting solution:", result.error)
-            }
+            // if (result.success && result.status) {
+            //     setSubmissionStatus(result.status)
+            // } else {
+            //     console.error("Error submitting solution:", result.error)
+            // }
+
+            console.log("Code is being submitted")
         } catch (error) {
             console.error("Error submitting solution:", error)
         } finally {
@@ -365,12 +387,12 @@ const ChallengePage = () => {
                                         value={selectedLanguage}
                                         onChange={handleLanguageChange}
                                         className={`border rounded py-1 px-3 text-sm ${theme === "dark"
-                                                ? "bg-gray-700 border-gray-600 text-gray-200"
-                                                : "bg-white border-gray-300 text-gray-700"
+                                            ? "bg-gray-700 border-gray-600 text-gray-200"
+                                            : "bg-white border-gray-300 text-gray-700"
                                             } focus:outline-none focus:ring-2 focus:ring-orange-500`}
                                     >
-                                        {challenge.languages.map((lang) => (
-                                            <option key={lang.id} value={lang.id}>
+                                        {languages.map((lang) => (
+                                            <option key={lang.id} value={lang.name}>
                                                 {lang.name}
                                             </option>
                                         ))}
@@ -404,9 +426,7 @@ const ChallengePage = () => {
                                 <CodeEditor
                                     value={code}
                                     onChange={setCode}
-                                    language={
-                                        challenge.languages.find((l) => l.id === selectedLanguage)?.name.toLowerCase() || "javascript"
-                                    }
+                                    language={selectedLanguage.toLowerCase()}
                                     theme={theme === "dark" ? "vs-dark" : "vs"}
                                 />
                             </div>
@@ -438,8 +458,8 @@ const ChallengePage = () => {
                                         <div className="flex items-center gap-2">
                                             <span
                                                 className={`px-3 py-1 rounded-full text-xs font-medium ${testResults.every((r) => r.passed)
-                                                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                                                        : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                                    : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
                                                     }`}
                                             >
                                                 {testResults.every((r) => r.passed) ? "All Tests Passed" : "Some Tests Failed"}
@@ -452,12 +472,12 @@ const ChallengePage = () => {
                                             <div
                                                 key={index}
                                                 className={`p-3 rounded-lg border ${result.passed
-                                                        ? theme === "dark"
-                                                            ? "border-green-700 bg-green-900/20"
-                                                            : "border-green-200 bg-green-50"
-                                                        : theme === "dark"
-                                                            ? "border-red-700 bg-red-900/20"
-                                                            : "border-red-200 bg-red-50"
+                                                    ? theme === "dark"
+                                                        ? "border-green-700 bg-green-900/20"
+                                                        : "border-green-200 bg-green-50"
+                                                    : theme === "dark"
+                                                        ? "border-red-700 bg-red-900/20"
+                                                        : "border-red-200 bg-red-50"
                                                     }`}
                                             >
                                                 <div className="flex items-center justify-between mb-2">
@@ -519,12 +539,12 @@ const ChallengePage = () => {
                         {submissionStatus && (
                             <div
                                 className={`rounded-lg border ${submissionStatus === "ACCEPTED"
-                                        ? theme === "dark"
-                                            ? "bg-green-900/20 border-green-700"
-                                            : "bg-green-50 border-green-200"
-                                        : theme === "dark"
-                                            ? "bg-red-900/20 border-red-700"
-                                            : "bg-red-50 border-red-200"
+                                    ? theme === "dark"
+                                        ? "bg-green-900/20 border-green-700"
+                                        : "bg-green-50 border-green-200"
+                                    : theme === "dark"
+                                        ? "bg-red-900/20 border-red-700"
+                                        : "bg-red-50 border-red-200"
                                     } p-4 mb-6`}
                             >
                                 <div className="flex items-center gap-2">

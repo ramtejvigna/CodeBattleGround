@@ -2,110 +2,109 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Mock data for challenges
-const mockChallenges = [
-    {
-        title: 'Two Sum',
-        description: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.',
-        difficulty: 'EASY',
-        points: 100,
-        category: 'Algorithms',
-        likes: 0,
-        submissions: 0,
-        successRate: 0,
-        createdAt: '2023-05-15T10:30:00Z',
-    },
-    {
-        title: 'Merge K Sorted Lists',
-        description: 'You are given an array of k linked-lists lists, each linked-list is sorted in ascending order. Merge all the linked-lists into one sorted linked-list and return it.',
-        difficulty: 'HARD',
-        points: 350,
-        category: 'Data Structures',
-        likes: 0,
-        submissions: 0,
-        successRate: 0,
-        createdAt: '2023-06-22T14:15:00Z',
-    },
-    {
-        title: 'Valid Parentheses',
-        description: 'Given a string s containing just the characters \'(\', \')\', \'{\', \'}\', \'[\' and \']\', determine if the input string is valid.',
-        difficulty: 'MEDIUM',
-        points: 200,
-        category: 'Algorithms',
-        likes: 0,
-        submissions: 0,
-        successRate: 0,
-        createdAt: '2023-04-10T09:45:00Z',
-    },
-    {
-        title: 'Design Twitter',
-        description: 'Design a simplified version of Twitter where users can post tweets, follow/unfollow another user, and see the 10 most recent tweets in the user\'s news feed.',
-        difficulty: 'EXPERT',
-        points: 500,
-        category: 'System Design',
-        likes: 0,
-        submissions: 0,
-        successRate: 0,
-        createdAt: '2023-07-05T16:20:00Z',
-    },
-    {
-        title: 'LRU Cache',
-        description: 'Design a data structure that follows the constraints of a Least Recently Used (LRU) cache.',
-        difficulty: 'MEDIUM',
-        points: 250,
-        category: 'Data Structures',
-        likes: 0,
-        submissions: 0,
-        successRate: 0,
-        createdAt: '2023-05-30T11:10:00Z',
-    },
-    {
-        title: 'Binary Tree Maximum Path Sum',
-        description: 'A path in a binary tree is a sequence of nodes where each pair of adjacent nodes in the sequence has an edge connecting them. Find the maximum path sum.',
-        difficulty: 'HARD',
-        points: 400,
-        category: 'Algorithms',
-        likes: 0,
-        submissions: 0,
-        successRate: 0,
-        createdAt: '2023-06-15T13:25:00Z',
-    },
-];
-
 async function main() {
-    // Seed challenges
-    for (const challengeData of mockChallenges) {
-        await prisma.challenge.create({
-            data: {
-                title: challengeData.title,
-                description: challengeData.description,
-                difficulty: challengeData.difficulty as 'EASY' | 'MEDIUM' | 'HARD' | 'EXPERT',
-                starterCode: {},  // Empty JSON object as starter code
-                timeLimit: 60,    // Default time limit
-                memoryLimit: 128, // Default memory limit
-                creator: {        // Create a default creator
-                    connectOrCreate: {
-                        where: { 
-                            email: 'vignaramtej46@gmail.com'
-                        },
-                        create: {
-                            email: 'vignaramtej46@gmail.com',
-                            username: 'vignaramtej'
-                        }
-                    }
-                },
-                points: challengeData.points,
-                category: {
-                    connectOrCreate: {
-                        where: { name: challengeData.category },
-                        create: { name: challengeData.category },
-                    },
-                },
-                createdAt: new Date(challengeData.createdAt),
-                updatedAt: new Date(challengeData.createdAt),
+    // Create some challenges
+    const challenge1 = await prisma.challenge.create({
+        data: {
+            title: 'Sum of Two Numbers',
+            description: 'Write a function to return the sum of two numbers.',
+            difficulty: 'EASY',
+            points: 10,
+            creator: {
+                connect: { id: 'cm7rmo66q0008phswus9nnfmf' } // Replace with an actual user ID from your database
             },
-        });
-    }
+            category: {
+                connectOrCreate: {
+                    where: { name: 'Basic Algorithms' },
+                    create: { name: 'Basic Algorithms', description: 'Fundamental algorithmic problems' }
+                }
+            },
+            starterCode: {
+                "javascript": "function sum(a, b) {\n  // Your code here\n}",
+                "python": "def sum(a, b):\n  # Your code here",
+                "java": "class Solution {\n\tpublic int sumOfTwoNumbers(int a, int b) {\n\t// Write your code here\n\t}\n}",
+            },
+            handlerCode: {
+                "javascript": "function handler(userCode, input) {\n  const [a, b] = input.split('\\n').map(Number);\n  return eval(userCode + `\\nsum(${a}, ${b});`);\n}",
+                "python": "def handler(userCode, input):\n  a, b = map(int, input.split('\\n'))\n  exec(userCode)\n  return eval('sum(a, b)')",
+                "java": "public class Handler {\n\tpublic static String handler(String userCode, String input) {\n\t\tString[] parts = input.split(\"\\\\n\");\n\t\tint a = Integer.parseInt(parts[0]);\n\t\tint b = Integer.parseInt(parts[1]);\n\t\treturn String.valueOf(new Solution().sumOfTwoNumbers(a, b));\n\t}\n}"
+            },
+            timeLimit: 2000, // 2 seconds
+            memoryLimit: 128 // 128 MB
+        }
+    });
+    
+    const challenge2 = await prisma.challenge.create({
+        data: {
+            title: 'Palindrome Check',
+            description: 'Write a function to check if a string is a palindrome.',
+            difficulty: 'MEDIUM',
+            points: 20,
+            creator: {
+                connect: { id: 'cm7rmo66q0008phswus9nnfmf' } // Replace with an actual user ID from your database
+            },
+            category: {
+                connectOrCreate: {
+                    where: { name: 'String Manipulation' },
+                    create: { name: 'String Manipulation', description: 'Problems involving string operations' }
+                }
+            },
+            starterCode: {
+                "javascript": "function isPalindrome(str) {\n  // Your code here\n}",
+                "python": "def is_palindrome(s):\n  # Your code here",
+                "java": "class Solution {\n\tpublic boolean isPalindrome(String str) {\n\t// Write your code here\n\t}\n}"
+            },
+            handlerCode: {
+                "javascript": "function handler(userCode, input) {\n  const str = input.trim();\n  return eval(userCode + `\\nisPalindrome('${str}');`);\n}",
+                "python": "def handler(userCode, input):\n  s = input.strip()\n  exec(userCode)\n  return eval(f'is_palindrome(\"{s}\")')",
+                "java": "public class Handler {\n\tpublic static String handler(String userCode, String input) {\n\t\tString str = input.trim();\n\t\treturn String.valueOf(new Solution().isPalindrome(str));\n\t}\n}"
+            },
+            timeLimit: 3000, // 3 seconds
+            memoryLimit: 256 // 256 MB
+        }
+    });
+    
+    // Add test cases for the first challenge
+    await prisma.testCase.createMany({
+        data: [
+            {
+                challengeId: challenge1.id,
+                input: '1\n2',
+                output: '3',
+                isHidden: false,
+                explanation: 'The sum of 1 and 2 is 3.'
+            },
+            {
+                challengeId: challenge1.id,
+                input: '5\n7',
+                output: '12',
+                isHidden: true,
+                explanation: 'The sum of 5 and 7 is 12.'
+            }
+        ]
+    });
+    
+    // Add test cases for the second challenge
+    await prisma.testCase.createMany({
+        data: [
+            {
+                challengeId: challenge2.id,
+                input: '"racecar"',
+                output: 'true',
+                isHidden: false,
+                explanation: '"racecar" is a palindrome.'
+            },
+            {
+                challengeId: challenge2.id,
+                input: '"hello"',
+                output: 'false',
+                isHidden: true,
+                explanation: '"hello" is not a palindrome.'
+            }
+        ]
+    });
+
+    console.log('Seeded challenges and test cases successfully!');
 }
 
 main()

@@ -195,135 +195,135 @@ export default function ChallengesPage() {
                 </TabsList>
             </Tabs>
 
-            {/* Filters Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-                {/* Difficulty */}
-                <div>
-                    <h3 className="text-lg font-semibold mb-3">Difficulty</h3>
-                    <RadioGroup value={difficulty} onValueChange={setDifficulty} className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="all" id="all-difficulties" />
-                            <Label htmlFor="all-difficulties">All Difficulties</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="EASY" id="easy" />
-                            <Label htmlFor="easy">Easy</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="MEDIUM" id="medium" />
-                            <Label htmlFor="medium">Medium</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="HARD" id="hard" />
-                            <Label htmlFor="hard">Hard</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="EXPERT" id="expert" />
-                            <Label htmlFor="expert">Expert</Label>
-                        </div>
-                    </RadioGroup>
+            <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-8 w-full">
+                {/* Filters Section */}
+                <div className="p-6 rounded-lg">
+                    {/* Difficulty */}
+                    <div className="mb-8">
+                        <h3 className="text-lg font-semibold mb-3">Difficulty</h3>
+                        <RadioGroup value={difficulty} onValueChange={setDifficulty} className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="all" id="all-difficulties" />
+                                <Label htmlFor="all-difficulties">All Difficulties</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="EASY" id="easy" />
+                                <Label htmlFor="easy">Easy</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="MEDIUM" id="medium" />
+                                <Label htmlFor="medium">Medium</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="HARD" id="hard" />
+                                <Label htmlFor="hard">Hard</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="EXPERT" id="expert" />
+                                <Label htmlFor="expert">Expert</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+
+                    {/* Category */}
+                    <div className="mb-8">
+                        <h3 className="text-lg font-semibold mb-3">Category</h3>
+                        <RadioGroup value={category} onValueChange={setCategory} className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="all" id="all-categories" />
+                                <Label htmlFor="all-categories">All Categories</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="algorithms" id="algorithms" />
+                                <Label htmlFor="algorithms">Algorithms</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="data-structures" id="data-structures" />
+                                <Label htmlFor="data-structures">Data Structures</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="system-design" id="system-design" />
+                                <Label htmlFor="system-design">System Design</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+
+                    {/* Sort By */}
+                    <div>
+                        <h3 className="text-lg font-semibold mb-3">Sort By</h3>
+                        <Select value={sortBy} onValueChange={setSortBy}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select sort order" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="newest">Newest First</SelectItem>
+                                <SelectItem value="oldest">Oldest First</SelectItem>
+                                <SelectItem value="most-liked">Most Liked</SelectItem>
+                                <SelectItem value="most-submissions">Most Submissions</SelectItem>
+                                <SelectItem value="highest-points">Highest Points</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
-                {/* Category */}
-                <div>
-                    <h3 className="text-lg font-semibold mb-3">Category</h3>
-                    <RadioGroup value={category} onValueChange={setCategory} className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="all" id="all-categories" />
-                            <Label htmlFor="all-categories">All Categories</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="algorithms" id="algorithms" />
-                            <Label htmlFor="algorithms">Algorithms</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="data-structures" id="data-structures" />
-                            <Label htmlFor="data-structures">Data Structures</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="system-design" id="system-design" />
-                            <Label htmlFor="system-design">System Design</Label>
-                        </div>
-                    </RadioGroup>
-                </div>
-
-                {/* Sort By */}
-                <div>
-                    <h3 className="text-lg font-semibold mb-3">Sort By</h3>
-                    <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select sort order" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="newest">Newest First</SelectItem>
-                            <SelectItem value="oldest">Oldest First</SelectItem>
-                            <SelectItem value="most-liked">Most Liked</SelectItem>
-                            <SelectItem value="most-submissions">Most Submissions</SelectItem>
-                            <SelectItem value="highest-points">Highest Points</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
-            {/* Challenges List */}
-            <div className="flex flex-col gap-4">
-                {loading ? (
-                    <Loader />
-                ) : (
-                    filteredChallenges.map((challenge) => (
-                        <Link key={challenge.id} href={`/challenge/${challenge.id}`}>
-                            <div
-                                className="border border-gray-200 cursor-pointer rounded-lg overflow-hidden hover:shadow-md transition-shadow"
-                            >
-                                <div className="p-6">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <h3 className="text-xl font-bold flex items-center">
-                                            {challenge.title}
-                                            {challenge.isFavorite && <span className="text-yellow-400 ml-2">★</span>}
-                                        </h3>
-                                        <div className="flex gap-2">
-                                            <span
-                                                className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getDifficultyColor(challenge.difficulty)}`}
-                                            >
-                                                {challenge.difficulty === "EXPERT"
-                                                    ? "Expert"
-                                                    : challenge.difficulty.charAt(0) + challenge.difficulty.slice(1).toLowerCase()}
-                                            </span>
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
-                                                {challenge.category.name}
-                                            </span>
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                                {challenge.points} Points
-                                            </span>
+                {/* Challenges List */}
+                <div className="flex flex-col gap-4 p-6 rounded-lg">
+                    {loading ? (
+                        <Loader />
+                    ) : (
+                        filteredChallenges.map((challenge) => (
+                            <Link key={challenge.id} href={`/challenge/${challenge.id}`}>
+                                <div className="border border-gray-200 cursor-pointer rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                                    <div className="p-6">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <h3 className="text-xl font-bold flex items-center">
+                                                {challenge.title}
+                                                {challenge.isFavorite && <span className="text-yellow-400 ml-2">★</span>}
+                                            </h3>
+                                            <div className="flex gap-2">
+                                                <span
+                                                    className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getDifficultyColor(challenge.difficulty)}`}
+                                                >
+                                                    {challenge.difficulty === "EXPERT"
+                                                        ? "Expert"
+                                                        : challenge.difficulty.charAt(0) + challenge.difficulty.slice(1).toLowerCase()}
+                                                </span>
+                                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+                                                    {challenge.category.name}
+                                                </span>
+                                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                                    {challenge.points} Points
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <p className="text-gray-600 mb-4">{challenge.description}</p>
+                                        <p className="text-gray-600 mb-4">{challenge.description}</p>
 
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                        {challenge.languages.map((lang, index) => (
-                                            <span key={index} className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                {lang}
-                                            </span>
-                                        ))}
-                                    </div>
-
-                                    <div className="flex items-center text-sm text-gray-500">
-                                        <div className="flex items-center mr-4">
-                                            <span>👍 {challenge.likes}</span>
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            {challenge.languages.map((lang, index) => (
+                                                <span key={index} className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                    {lang}
+                                                </span>
+                                            ))}
                                         </div>
-                                        <div className="flex items-center mr-4">
-                                            <span>📝 {challenge.submissions} submissions</span>
-                                        </div>
-                                        <div className="flex items-center">
-                                            <span>{challenge.successRate}% success rate</span>
+
+                                        <div className="flex items-center text-sm text-gray-500">
+                                            <div className="flex items-center mr-4">
+                                                <span>👍 {challenge.likes}</span>
+                                            </div>
+                                            <div className="flex items-center mr-4">
+                                                <span>📝 {challenge.submissions} submissions</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <span>{challenge.successRate}% success rate</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </Link>
-                    ))
-                )}
+                            </Link>
+                        ))
+                    )}
+                </div>
             </div>
         </div>
     )

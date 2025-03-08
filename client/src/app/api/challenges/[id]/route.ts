@@ -1,15 +1,15 @@
-// api/challenges/[id]
-
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 export async function GET(
-    request: NextRequest, 
-    { params }: { params: { id: string } }
+    request: NextRequest, // Use `Request` instead of `NextRequest` unless you need Next.js-specific features
 ) {
     try {
+        // Extract id from the URL path using Next.js params
+        const id = request.url.split('/').pop();
+        
         const challenge = await prisma.challenge.findUnique({
-            where: { id: params.id },
+            where: { id: id },
             include: {
                 category: true,
                 languages: true,
@@ -18,16 +18,16 @@ export async function GET(
                     select: {
                         id: true,
                         username: true,
-                        image: true
-                    }
+                        image: true,
+                    },
                 },
                 _count: {
-                    select: { 
-                        likes: true, 
-                        submissions: true 
-                    }
-                }
-            }
+                    select: {
+                        likes: true,
+                        submissions: true,
+                    },
+                },
+            },
         });
 
         if (!challenge) {
@@ -36,22 +36,22 @@ export async function GET(
 
         // Fetch submission statistics
         const submissionStats = await prisma.submission.aggregate({
-            where: { challengeId: params.id },
+            where: { challengeId: id },
             _avg: {
                 runtime: true,
-                memory: true
+                memory: true,
             },
             _count: {
-                status: true
-            }
+                status: true,
+            },
         });
 
         // Handle starterCode being null or invalid
         const starterCode = challenge.starterCode || {};
-        const languagesWithStarterCode = challenge.languages.map(lang => ({
+        const languagesWithStarterCode = challenge.languages.map((lang) => ({
             id: lang.id,
             name: lang.name,
-            starterCode: (starterCode as Record<string, string>)[lang.id] || '' // Type assertion
+            starterCode: (starterCode as Record<string, string>)[lang.id] || '', // Type assertion
         }));
 
         return NextResponse.json({
@@ -62,15 +62,17 @@ export async function GET(
             submissionStats: {
                 avgRuntime: submissionStats._avg.runtime || 0,
                 avgMemory: submissionStats._avg.memory || 0,
-                statusCounts: submissionStats._count.status
-            }
+                statusCounts: submissionStats._count.status,
+            },
         });
     } catch (error) {
-        console.error('Error fetching challenge details:', error);
-        return NextResponse.json({ 
-            error: 'Failed to fetch challenge details', 
-            details: error instanceof Error ? error.message : 'Unknown error' 
-        }, { status: 500 });
+        return NextResponse.json(
+            {
+                error: 'Failed to fetch challenge details',
+                details: error instanceof Error ? error.message : 'Unknown error',
+            },
+            { status: 500 }
+        );
     } finally {
         await prisma.$disconnect();
     }

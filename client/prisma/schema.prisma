@@ -134,6 +134,7 @@ model Challenge {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   starterCode     Json              // Map of language ID to starter code
+  handlerCode     Json
   timeLimit       Int               // Time limit in seconds
   memoryLimit     Int               // Memory limit in MB
 }

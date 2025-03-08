@@ -17,27 +17,28 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, language, them
     }
 
     return (
-        <Editor
-            height="100%"
-            defaultLanguage={language}
-            language={language}
-            value={value}
-            theme={theme === "dark" ? "vs-dark" : "vs-light"}
-            onChange={handleEditorChange}
-            options={{
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 14,
-                tabSize: 2,
-                automaticLayout: true,
-                wordWrap: "on",
-                lineNumbers: "on",
-                glyphMargin: false,
-                folding: true,
-                lineDecorationsWidth: 10,
-                lineNumbersMinChars: 3,
-            }}
-        />
+        <div className="lg:col-span-3 space-y-6">
+            {/* Editor Panel */}
+            <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                <Editor
+                    height="50vh"
+                    defaultLanguage={language}
+                    language={language}
+                    value={value}
+                    onChange={handleEditorChange}
+                    theme={theme}
+                    options={{
+                        minimap: { enabled: true },
+                        fontSize: 14,
+                        wordWrap: 'on',
+                        lineNumbers: 'on',
+                        automaticLayout: true,
+                        cursorBlinking: 'smooth',
+                        smoothScrolling: true,
+                    }}
+                />
+            </div>
+        </div>
     )
 }
 
