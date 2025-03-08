@@ -10,6 +10,7 @@ export interface User {
     githubUsername?: string | null;
     createdAt: string;
     updatedAt: string;
+    pointsBreakdown: PointsBreakDown;
     userProfile?: UserProfile;
     sessions?: Session[];
     accounts?: Account[];
@@ -18,6 +19,13 @@ export interface User {
     submissions?: Submission[];
     challengeAttempts?: ChallengeAttempt[];
     challengeLikes?: ChallengeLike[];
+}
+
+interface PointsBreakDown {
+    challenges: number;
+    contests: number;
+    badges: number;
+    discussions: number;
 }
 
 export interface UserProfile {
@@ -50,6 +58,7 @@ export interface Badge {
 export interface Language {
     id: string;
     name: string;
+    percentage: number;
     starterCode: string;
     createdAt: string;
     updatedAt: string;

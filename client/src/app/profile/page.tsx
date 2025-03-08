@@ -20,7 +20,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Loader from '@/components/Loader';
-import { Activity as ActivityType } from '@/lib/interfaces';
+import { Activity as ActivityType, Language } from '@/lib/interfaces';
 import { useUserProfile } from '@/context/UserProfileContext';
 import toast from 'react-hot-toast';
 
@@ -245,7 +245,7 @@ const ProfileContent = () => {
                                     
                                     {hasLanguages ? (
                                         <div className="space-y-3">
-                                            {languages.map((lang, i) => (
+                                            {languages.map((lang: Language, i) => (
                                                 <div key={i}>
                                                     <div className="flex justify-between text-sm mb-1">
                                                         <span>{lang.name}</span>
