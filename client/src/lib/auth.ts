@@ -151,5 +151,16 @@ export const authOptions: NextAuthOptions = {
                 return true; // Continue with sign in even if profile creation fails
             }
         }
-    }
+    },
+    cookies: {
+        sessionToken: {
+            name: 'next-auth.session-token', // Ensure this matches the cookie name in your middleware
+            options: {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/',
+            },
+        },
+    },
 };

@@ -22,9 +22,11 @@ import {
 import Loader from "@/components/Loader"
 import CodeEditor from "@/components/CodeEditor"
 import Link from "next/link"
+import toast from "react-hot-toast"
 
 // Types
 interface TestCase {
+    id: string
     input: string
     output: string
     isHidden: boolean
@@ -66,6 +68,8 @@ interface TestResult {
     expectedOutput: string
     actualOutput: string
     passed: boolean
+    runtime?: number
+    memory?: number
 }
 
 interface StarterCode {
@@ -158,22 +162,37 @@ const ChallengePage = () => {
         setMemory(null)
 
         try {
-            // const result = await runCodeLocally({
-            //     challengeId: challenge.id,
-            //     code,
-            //     languageId: selectedLanguage,
-            // })
+            const testCase = challenge.testCases.find(tc => !tc.isHidden);
+            if (!testCase) {
+                toast.error("No test cases available to run");
+                return;
+            }
 
-            // if (result.success && result.testResults) {
-            //     setTestResults(result.testResults)
-            //     setRuntime(result.runtime)
-            //     setMemory(result.memory)
-            // } else {
-            //     console.error("Error running code:", result.error)
-            // }
-            console.log("Code is running");
+            const response = await fetch("/api/execute", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    code,
+                    language: selectedLanguage,
+                    challengeId: challenge.id,
+                    testCaseId: testCase.id
+                })
+            })
+
+            const data = await response.json();
+
+            if(!response.ok) {
+                throw new Error(data.error || "Failed to run code");
+            }
+
+            setTestResults(data.testResults);
+            setRuntime(data.runtime);
+            setMemory(data.memory);
         } catch (error) {
             console.error("Error running code:", error)
+            toast.error("Failed to run code");
         } finally {
             setIsRunning(false)
         }
@@ -187,22 +206,37 @@ const ChallengePage = () => {
         setSubmissionStatus(null)
 
         try {
-            // const result = await submitChallengeSolution({
-            //     challengeId: challenge.id,
-            //     userId: user.id,
-            //     code,
-            //     languageId: selectedLanguage,
-            // })
+            const response = await fetch("/api/submissions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    code,
+                    language: selectedLanguage,
+                    challengeId: challenge.id,
+                }),
+            });
 
-            // if (result.success && result.status) {
-            //     setSubmissionStatus(result.status)
-            // } else {
-            //     console.error("Error submitting solution:", result.error)
-            // }
+            const data = await response.json();
 
-            console.log("Code is being submitted")
+            if (!response.ok) {
+                throw new Error(data.error || "Failed to submit solution");
+            }
+
+            setTestResults(data.testResults);
+            setRuntime(data.runtime);
+            setMemory(data.memory);
+            setSubmissionStatus(data.allPassed ? "ACCEPTED" : "FAILED");
+
+            if (data.allPassed) {
+                toast.success("Solution accepted! All test cases passed.");
+            } else {
+                toast.error("Solution failed. Some test cases did not pass.");
+            }
         } catch (error) {
             console.error("Error submitting solution:", error)
+            toast.error("Failed to submit solution");
         } finally {
             setIsSubmitting(false)
         }
