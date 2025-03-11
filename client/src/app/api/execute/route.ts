@@ -93,7 +93,6 @@ export async function POST(req: NextRequest) {
                 );
             }
 
-
             await prisma.submission.create({
                 data: {
                     user: { connect: { id: userId } },
@@ -110,8 +109,8 @@ export async function POST(req: NextRequest) {
             if (allPassed) {
                 const existingAttempt = await prisma.challengeAttempt.findFirst({
                     where: {
-                        userId,
-                        challengeId,
+                        userId: userId,
+                        challengeId: challengeId,
                         successful: true,
                     },
                 });
@@ -149,7 +148,7 @@ export async function POST(req: NextRequest) {
                     });
                 }
             }
-        } else {
+        } else if (userId) { // Added check for userId to avoid creating attempts for anonymous users
             const existingAttempt = await prisma.challengeAttempt.findFirst({
                 where: {
                     userId,
@@ -169,15 +168,16 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({
-            sucess: true,
+            success: true, // Fixed typo: "sucess" -> "success"
             testResults,
             allPassed,
             runtime: Math.round(totalRuntime / challenge.testCases.length),
             memory: maxMemory,
         });
-    } catch (error) {
+    } catch (err) {
+        console.error("Error executing code:", err);
         return NextResponse.json(
-            { error: "Failed to execute code" },
+            { error: "Failed to execute code", message: err },
             { status: 500 }
         );
     }

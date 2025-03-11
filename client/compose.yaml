@@ -24,6 +24,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - postgres
+      - image-puller
 
   # Pre-pull necessary containers to have them available via the mounted Docker socket
   image-puller:
@@ -34,8 +35,6 @@ services:
       sh -c "docker pull node:18-alpine &&
              docker pull python:3.11-alpine &&
              docker pull openjdk:17-slim"
-    profiles:
-      - setup
 
   # Database
   postgres:
