@@ -34,8 +34,9 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Execute the code against all test cases
-        const executeResponse = await fetch('/api/execute', {
+        // Use an absolute URL for the internal API call
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const executeResponse = await fetch(`${baseUrl}/api/execute`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -57,9 +58,9 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json(executeResult);
-    } catch (error) {
+    } catch (err) {
         return NextResponse.json(
-            { error: 'Failed to process submission' },
+            { error: 'Failed to process submission', message: err },
             { status: 500 }
         );
     }

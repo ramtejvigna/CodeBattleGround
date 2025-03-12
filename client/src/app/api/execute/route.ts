@@ -175,7 +175,6 @@ export async function POST(req: NextRequest) {
             memory: maxMemory,
         });
     } catch (err) {
-        console.error("Error executing code:", err);
         return NextResponse.json(
             { error: "Failed to execute code", message: err },
             { status: 500 }
