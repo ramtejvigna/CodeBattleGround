@@ -3,7 +3,6 @@ import type { NextRequest } from "next/server";
 
 const protectedPaths = [
     '/profile',
-    '/dashboard',
     '/challenge',
     '/settings',
     '/battles'
@@ -27,7 +26,7 @@ export async function middleware(req: NextRequest) {
     }
 
     if (isAuthPath && sessionCookie) {
-        return NextResponse.redirect(new URL('/dashboard', req.url));
+        return NextResponse.redirect(new URL('/', req.url));
     }
 
     return NextResponse.next();

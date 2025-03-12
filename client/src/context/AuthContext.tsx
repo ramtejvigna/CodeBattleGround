@@ -68,7 +68,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (!loading && !user) {
             const protectedRoutes = [
                 '/profile',
-                '/dashboard',
                 '/challenge',
                 '/certifications',
                 '/settings',
@@ -86,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const authRoutes = ['/login', '/signup'];
 
             if (authRoutes.includes(pathname || '')) {
-                router.push('/dashboard');
+                router.push('/');
             }
         }
     }, [user, loading, pathname, router]);
@@ -110,7 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
 
             setUser(data.user);
-            router.push('/dashboard');
+            router.push('/profile');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred');
         } finally {
@@ -137,7 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
 
             setUser(data.user);
-            router.push('/dashboard');
+            router.push('/profile');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred');
         } finally {

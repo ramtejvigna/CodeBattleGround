@@ -31,7 +31,6 @@ export async function GET(req: NextRequest) {
         );
 
     } catch (err) {
-        console.error("Error fetching profile:", err);
         return NextResponse.json(
             { success: false, message: "Something went wrong", error: err instanceof Error ? err.message : 'Unknown error' },
             { status: 500 }
