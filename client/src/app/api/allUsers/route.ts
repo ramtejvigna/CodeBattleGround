@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
     try {
-        const user = await prisma.user.findMany({
+        const users = await prisma.user.findMany({
             include: {
                 userProfile: {
                     include: {
@@ -15,18 +15,24 @@ export async function GET(req: NextRequest) {
                     }
                 },
                 activites: true
+            },
+            orderBy: {
+                userProfile: {
+                    points: 'desc'
+                }
             }
         });
 
-        if (!user) {
+        if (!users || users.length === 0) {
             return NextResponse.json(
-                { message: "User not found" },
+                { message: "No users found" },
                 { status: 404 }
             );
         }
-        // Return the user object directly since there is no password field
+
+        // Return the users array directly since there is no password field
         return NextResponse.json(
-            { success: true, user: user },
+            { success: true, users: users, message: "Successfully fetched top users data" },
             { status: 200 }
         );
 

@@ -76,8 +76,9 @@ const Home = () => {
         }
 
         const data = await response.json();
-        if (data.success && data.user) {
-          setUsers(data.user);
+
+        if (data.success && data.users) {
+          setUsers(data.users);
         } else {
           console.error('Failed to fetch users:', data.message);
         }
@@ -88,10 +89,10 @@ const Home = () => {
     fetchUsers();
   }, []);
 
+  // .sort((a, b) => (a.userProfile?.rank ?? Infinity) - (b.userProfile?.rank ?? Infinity)) // Use optional chaining and nullish coalescing
   // Sort the leaderboard data by rank
   const leaderboard = users && users.length > 0
   ? users
-    .sort((a, b) => (a.userProfile?.rank ?? Infinity) - (b.userProfile?.rank ?? Infinity)) // Use optional chaining and nullish coalescing
     .slice(0, 10)
     .map(player => {
       // Assign badges based on rank
@@ -131,9 +132,9 @@ const Home = () => {
               <Link href="/challenge" className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg font-semibold flex items-center gap-2 transition-transform hover:translate-y-[-2px] shadow-lg shadow-orange-900/30">
                 Join Battle <Swords className="w-4 h-4" />
               </Link>
-              <button className="px-6 py-3 bg-gray-800 border border-gray-700 rounded-lg font-semibold flex items-center gap-2 transition-all hover:bg-gray-750 hover:border-orange-500">
+              <Link href="/challenge" className="px-6 py-3 bg-gray-800 border border-gray-700 rounded-lg font-semibold flex items-center gap-2 transition-all hover:bg-gray-750 hover:border-orange-500">
                 Practice Now <Terminal className="w-4 h-4" />
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -250,7 +251,7 @@ const Home = () => {
                   }`}
                 >
                   <td className="py-4 px-6 font-mono">{player.userProfile?.rank}</td>
-                  <td className="py-4 px-6 font-semibold">{player.name}</td>
+                  <td className="py-4 px-6 font-semibold">{player.username}</td>
                   <td className="py-4 px-6 text-orange-400 font-mono">{player.userProfile?.points.toLocaleString()}</td>
                   <td className="py-4 px-6 text-right">{player.badge}</td>
                 </tr>
