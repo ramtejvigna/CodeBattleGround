@@ -18,12 +18,14 @@ import {
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { User } from '@/lib/interfaces';
+import { useTheme } from '@/context/ThemeContext';
 
 const Home = () => {
   const [currentChallenge, setCurrentChallenge] = useState(0);
   const [codeTyped, setCodeTyped] = useState('');
   const [cursor, setCursor] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
+  const { theme } = useTheme();
   const { user } = useAuth();
 
   const exampleCode = `function findWinner(scores) {\n  return scores\n    .sort((a, b) => b.points - a.points)\n    .map(player => player.name)[0];\n}`;
@@ -110,7 +112,7 @@ const Home = () => {
   : [];
 
   return (
-    <div className="bg-gray-900 min-h-screen text-gray-200">
+    <div className={`${theme === "dark" && "bg-gray-900 text-gray-200"} min-h-screen `}>
       {/* Hero Section */}
       <div className="pt-12 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
@@ -132,14 +134,14 @@ const Home = () => {
               <Link href="/challenge" className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg font-semibold flex items-center gap-2 transition-transform hover:translate-y-[-2px] shadow-lg shadow-orange-900/30">
                 Join Battle <Swords className="w-4 h-4" />
               </Link>
-              <Link href="/challenge" className="px-6 py-3 bg-gray-800 border border-gray-700 rounded-lg font-semibold flex items-center gap-2 transition-all hover:bg-gray-750 hover:border-orange-500">
+              <Link href="/challenge" className={`px-6 py-3 ${theme === "dark" && "bg-gray-800" } border border-gray-700 rounded-lg font-semibold flex items-center gap-2 transition-all hover:bg-gray-750 hover:border-orange-500`}>
                 Practice Now <Terminal className="w-4 h-4" />
               </Link>
             </div>
           </div>
 
           <div className="relative">
-            <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 shadow-xl">
+            <div className={`${theme === "dark" && "bg-gray-800 border border-gray-700"} rounded-xl p-4 shadow-xl`}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex space-x-2">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
@@ -153,12 +155,6 @@ const Home = () => {
                   {codeTyped}<span className={`${cursor ? 'opacity-100' : 'opacity-0'} transition-opacity duration-100`}>|</span>
                 </pre>
               </div>
-              <div className="mt-4 flex justify-between items-center">
-                <span className="text-xs text-gray-400">Time left: 01:45:32</span>
-                <button className="px-3 py-1 bg-orange-600 text-white text-sm rounded-md hover:bg-orange-500 transition-colors">
-                  Submit Solution
-                </button>
-              </div>
             </div>
 
             {/* Decorative elements */}
@@ -169,7 +165,7 @@ const Home = () => {
       </div>
 
       {/* Active Challenges Section */}
-      <div className="bg-gray-800/50 py-16">
+      <div className={`py-16 ${theme === "dark" ? "bg-gray-800/50" : "bg-gray-50/50"}`}>
         <div className="max-w-7xl mx-auto px-6 md:px-12">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold flex items-center">
@@ -185,7 +181,7 @@ const Home = () => {
             {challenges.map((challenge, index) => (
               <div
                 key={index}
-                className={`bg-gray-800 border border-gray-700 rounded-lg p-4 transition-all duration-300 hover:border-orange-500 hover:shadow-lg hover:shadow-orange-900/20 ${
+                className={`${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-400"} border  rounded-lg p-4 transition-all duration-300 hover:border-orange-500 hover:shadow-lg hover:shadow-orange-900/20 ${
                   index === currentChallenge ? 'border-orange-500 shadow-lg shadow-orange-900/20 scale-105' : ''
                 }`}
               >
@@ -230,10 +226,10 @@ const Home = () => {
           </button>
         </div>
 
-        <div className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700">
+        <div className={`${theme === 'dark' ? "bg-gray-800 border border-gray-700" : "bg-white border border-gray-400/50"} rounded-xl overflow-hidden`}>
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-800/70 text-left">
+              <tr className={`${theme === 'dark' ? "bg-gray-800/70 border border-gray-700" : "bg-white border border-gray-400/50"} text-left`}>
                 <th className="py-4 px-6">Rank</th>
                 <th className="py-4 px-6">Warrior</th>
                 <th className="py-4 px-6">Points</th>
@@ -245,7 +241,7 @@ const Home = () => {
                 <tr
                   key={index}
                   className={`border-t border-gray-700 hover:bg-gray-750 transition-colors ${
-                    player.userProfile?.rank === 1 ? 'bg-gradient-to-r from-orange-900/20 to-transparent' : 
+                    player.userProfile?.rank === 1 ? `bg-gradient-to-r ${theme === "dark" ? "from-orange-900/20" : "from-orange-500/40"} to-transparent` : 
                     player.userProfile?.rank === 2 ? 'bg-gradient-to-r from-gray-700/30 to-transparent' :
                     player.userProfile?.rank === 3 ? 'bg-gradient-to-r from-yellow-700/20 to-transparent' : ''
                   }`}
@@ -262,14 +258,14 @@ const Home = () => {
       </div>
 
       {/* Features Section */}
-      <div className="bg-gray-800/50 py-16">
+      <div className={`py-16 ${theme === "dark" ? "bg-gray-800/50" : "bg-gray-50/50"}`}>
         <div className="max-w-7xl mx-auto px-6 md:px-12">
           <h2 className="text-2xl font-bold mb-10 text-center">
             The Ultimate <span className="bg-gradient-to-r from-orange-500 to-red-600 text-transparent bg-clip-text">Coding Competition</span> Platform
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-6 bg-gray-800 rounded-lg border border-gray-700 hover:border-orange-500 transition-all group">
+            <div className={`p-6 ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-400"} hover:border-orange-500 shadow-xl rounded-xl transition-all group`}>
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-orange-500/30 transition-colors">
                 <Terminal className="text-orange-500" />
               </div>
@@ -277,7 +273,7 @@ const Home = () => {
               <p className="text-gray-400">Compete in timed coding challenges against coders from around the world.</p>
             </div>
 
-            <div className="p-6 bg-gray-800 rounded-lg border border-gray-700 hover:border-orange-500 transition-all group">
+            <div className={`p-6 ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-400"} hover:border-orange-500 shadow-xl rounded-xl transition-all group`}>
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-orange-500/30 transition-colors">
                 <BookOpen className="text-orange-500" />
               </div>
@@ -285,7 +281,7 @@ const Home = () => {
               <p className="text-gray-400">Master algorithms, data structures, and problem-solving through guided learning paths.</p>
             </div>
 
-            <div className="p-6 bg-gray-800 rounded-lg border border-gray-700 hover:border-orange-500 transition-all group">
+            <div className={`p-6 ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-400"} hover:border-orange-500 shadow-xl rounded-xl transition-all group`}>
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-orange-500/30 transition-colors">
                 <Award className="text-orange-500" />
               </div>

@@ -17,10 +17,10 @@ export default function ClientLayout({
     const pathname = usePathname();
 
     // Define the routes where you don't want to show NavBar and Footer
-    const noNavBarFooterRoutes = ["/login", "/signup"];
+    const noNavBarFooterRoutes = ["/login", "/signup", "/admin"];
 
     // Check if the current route is in the noNavBarFooterRoutes array
-    const shouldShowNavBarFooter = !noNavBarFooterRoutes.includes(pathname);
+    const shouldShowNavBarFooter = !noNavBarFooterRoutes.includes(pathname) || pathname.startsWith("/admin/");
 
     return (
         <SessionProvider>

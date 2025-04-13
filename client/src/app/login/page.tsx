@@ -123,8 +123,11 @@ export default function AuthForm() {
                 throw new Error(result.error);
             }
 
-            // Redirect to the dashboard or home page
-            router.push('/');
+            if (!result?.error) {
+                router.push('/');
+            } else {
+                throw new Error('Authentication failed');
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred');
         } finally {

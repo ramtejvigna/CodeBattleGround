@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-
         const { name, email, phone, bio, image, preferredLanguage, userId } = body;
 
         if (!name || !email || !userId) {
@@ -34,16 +33,22 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const updateData = {
+        // Prepare the update data
+        const updateData: any = {
             name,
             email,
             ...(image && { image }),
-            userProfile: {
+            updatedAt: new Date() // Explicitly set updatedAt
+        };
+
+        // Prepare user profile data only if any profile fields are provided
+        if (bio !== undefined || phone !== undefined || preferredLanguage !== undefined) {
+            updateData.userProfile = {
                 upsert: {
                     create: {
                         bio: bio || '',
-                        phone: phone || '',  // Changed from null to empty string
-                        preferredLanguage: preferredLanguage || '',
+                        phone: phone || '',
+                        preferredLanguage: preferredLanguage || 'en', // default language
                         rank: 0,
                         solved: 0,
                         level: 1,
@@ -54,11 +59,12 @@ export async function POST(req: NextRequest) {
                     update: {
                         ...(bio !== undefined && { bio }),
                         ...(phone !== undefined && { phone }),
-                        ...(preferredLanguage !== undefined && { preferredLanguage })
+                        ...(preferredLanguage !== undefined && { preferredLanguage }),
+                        updatedAt: new Date()
                     }
                 }
-            }
-        };
+            };
+        }
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
@@ -73,9 +79,13 @@ export async function POST(req: NextRequest) {
             user: updatedUser
         });
     } catch (error) {
-        console.error('Error updating profile:', error);
+        console.error('Profile update error:', error); // Better error logging
         return NextResponse.json(
-            { success: false, message: 'Failed to update profile' },
+            { 
+                success: false, 
+                message: 'Failed to update profile',
+                error: error
+            },
             { status: 500 }
         );
     }

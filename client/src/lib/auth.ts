@@ -1,4 +1,4 @@
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
@@ -7,6 +7,25 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
+declare module "next-auth" {
+    interface Session {
+        user: {
+            id: string;
+            email: string;
+            name?: string | null;
+            image?: string | null;
+            username?: string;
+            githubUsername?: string;
+            githubConnected?: boolean;
+            role?: string;
+        };
+    }
+
+    interface User {
+        role?: string;
+    }
+}
 
 export const authOptions: NextAuthOptions = {
     adapter: PrismaAdapter(prisma),
@@ -29,16 +48,19 @@ export const authOptions: NextAuthOptions = {
 
                     if (!user || !user.password) return null;
 
-                    const isPasswordValid = await bcrypt.compare(
-                        credentials.password,
-                        user.password
-                    );
-
-                    if (!isPasswordValid) return null;
+                    if(user.role === "USER") {
+                        const isPasswordValid = await bcrypt.compare(
+                            credentials.password,
+                            user.password
+                        );
+    
+                        if (!isPasswordValid) return null;
+                    }
 
                     return {
                         id: user.id,
                         email: user.email,
+                        role: user.role,
                         name: user.name,
                         username: user.username
                     };
@@ -58,6 +80,7 @@ export const authOptions: NextAuthOptions = {
                     name: profile.name ?? profile.login,
                     email: profile.email ?? `${profile.login}@github.com`,
                     image: profile.avatar_url,
+                    role: profile.role,
                     username: profile.login,
                     githubConnected: true,
                     githubUsername: profile.login,
@@ -71,6 +94,7 @@ export const authOptions: NextAuthOptions = {
                 return {
                     id: profile.sub,
                     name: profile.name,
+                    role: profile.role,
                     email: profile.email,
                     image: profile.picture,
                     username: profile.email.split('@')[0]
@@ -91,6 +115,7 @@ export const authOptions: NextAuthOptions = {
                 token.id = user.id;
                 token.email = user.email;
                 token.name = user.name;
+                token.role = user.role;
                 if ('username' in user) {
                     token.username = user.username;
                 }
@@ -108,6 +133,7 @@ export const authOptions: NextAuthOptions = {
             if (session.user) {
                 session.user.id = token.id as string;
                 session.user.email = token.email as string;
+                session.user.role = token.role as string;
                 if (token.username) {
                     session.user.username = token.username as string;
                 }

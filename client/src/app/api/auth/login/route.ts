@@ -33,19 +33,22 @@ export async function POST(req: NextRequest) {
 
         if (!user.password) {
             return NextResponse.json(
-                { message: "Invalid email or password" },
+                { message: "Invalid password" },
                 { status: 401 }
             );
         }
 
         // Compare the provided password with the hashed password in the database
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if(user.role === "USER") {
+            const isPasswordValid = await bcrypt.compare(password, user.password);
 
-        if (!isPasswordValid) {
-            return NextResponse.json(
-                { message: "Invalid email or password" },
-                { status: 401 }
-            );
+            
+            if (!isPasswordValid) {
+                return NextResponse.json(
+                    { message: "Invalid password" },
+                    { status: 401 }
+                );
+            }
         }
 
         // Exclude the password from the response

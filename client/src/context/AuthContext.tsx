@@ -12,6 +12,7 @@ export interface User {
     fullName?: string;
     preferredLanguage?: string;
     avatarUrl?: string;
+    role?: string;
     level?: number;
     points?: number;
 }
@@ -52,6 +53,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     if (data.user) {
                         setUser(data.user);
                     }
+
+                    if(data.user && data.user.role === "ADMIN") {
+                        router.push('/admin');
+                    }
                 }
             } catch (err) {
                 console.error('Auth check failed:', err);
@@ -61,7 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
 
         checkAuth();
-    }, [pathname]);
+    }, []);
 
     // Redirect to login if accessing protected route without auth
     useEffect(() => {
@@ -80,12 +85,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
         }
 
-        // Redirect to dashboard if authenticated user tries to access auth pages
-        if (!loading && user) {
+        if (user) {
             const authRoutes = ['/login', '/signup'];
 
             if (authRoutes.includes(pathname || '')) {
-                router.push('/');
+                if(user.role === "USER") {
+                    router.push('/');
+                } else if(user.role === "ADMIN") {
+                    router.push('/admin');
+                }
             }
         }
     }, [user, loading, pathname, router]);

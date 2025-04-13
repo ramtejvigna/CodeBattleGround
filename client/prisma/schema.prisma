@@ -23,6 +23,9 @@ model User {
     activites           Activity[]
     createdAt           DateTime     @default(now())
     updatedAt           DateTime     @updatedAt
+    role                String       @default("USER")
+    lastActive          DateTime?    
+    adminLead          AdminLead?   // Relation to AdminLead
 
     createChallenges    Challenge[]  @relation("ChallengeCreator")
     submissions         Submission[]
@@ -133,8 +136,6 @@ model Challenge {
   categoryId      String
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
-  starterCode     Json              // Map of language ID to starter code
-  handlerCode     Json
   timeLimit       Int               // Time limit in seconds
   memoryLimit     Int               // Memory limit in MB
 }
@@ -193,6 +194,17 @@ model ChallengeLike {
   createdAt   DateTime  @default(now())
 
   @@unique([userId, challengeId])
+}
+
+model AdminLead {
+    id              String    @id @default(cuid())
+    userId          String    @unique
+    user            User      @relation(fields: [userId], references: [id])
+    department      String
+    responsibilities String[]
+    accessLevel     Int       @default(1)
+    createdAt       DateTime  @default(now())
+    updatedAt       DateTime  @updatedAt
 }
 
 enum Difficulty {

@@ -15,7 +15,7 @@ const NavBar = () => {
     const { theme, setTheme } = useTheme(); // Use the theme context
 
     const { userData, loading } = useUserProfile(); 
-    const { user, logout } = useAuth();
+    const { logout } = useAuth();
 
     if(loading) {
         return <Loader />
@@ -89,7 +89,7 @@ const NavBar = () => {
                             </button>
                         </li>
 
-                        {user ? (
+                        {userData ? (
                             <>
                                 <li>
                                     <Link href="/profile" className="relative group">
@@ -101,7 +101,7 @@ const NavBar = () => {
                                                     className="w-full h-full object-cover"
                                                 />
                                             ) : (
-                                                user?.username?.charAt(0)
+                                                userData?.username?.charAt(0)
                                             )}
                                         </div>
                                     </Link>

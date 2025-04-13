@@ -7,6 +7,9 @@ const prisma = new PrismaClient();
 export async function GET(req: NextRequest) {
     try {
         const users = await prisma.user.findMany({
+            where: {
+                role: "USER",
+            },
             include: {
                 userProfile: {
                     include: {
