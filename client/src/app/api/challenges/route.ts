@@ -1,5 +1,3 @@
-// /api/challenges
-
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
@@ -38,33 +36,40 @@ export async function GET(request: NextRequest) {
             }
         })();
 
-        // Fetch challenges with related data
-        const challenges = await prisma.challenge.findMany({
-            where: whereCondition,
-            include: {
-                category: true,
-                languages: true,
-                submissions: true, // Include submissions in the query
-                _count: {
-                    select: {
-                        likes: true,
-                        submissions: true
+        // Fetch challenges with related data and categories in parallel
+        const [challenges, categories, total] = await Promise.all([
+            prisma.challenge.findMany({
+                where: whereCondition,
+                include: {
+                    category: true,
+                    languages: true,
+                    submissions: true,
+                    _count: {
+                        select: {
+                            likes: true,
+                            submissions: true
+                        }
                     }
+                },
+                orderBy: {
+                    [sortBy === 'newest' || sortBy === 'oldest' ? 'createdAt' :
+                        sortBy === 'most-liked' ? 'likes' :
+                            sortBy === 'most-submissions' ? 'submissions' :
+                                sortBy === 'highest-points' ? 'points' : 'createdAt']:
+                        sortBy === 'oldest' ? 'asc' : 'desc'
+                },
+                skip: (page - 1) * limit,
+                take: limit
+            }),
+            prisma.challengeCategory.findMany({
+                select: {
+                    id: true,
+                    name: true,
+                    description: true
                 }
-            },
-            orderBy: {
-                [sortBy === 'newest' || sortBy === 'oldest' ? 'createdAt' :
-                    sortBy === 'most-liked' ? 'likes' :
-                        sortBy === 'most-submissions' ? 'submissions' :
-                            sortBy === 'highest-points' ? 'points' : 'createdAt']:
-                    sortBy === 'oldest' ? 'asc' : 'desc'
-            },
-            skip: (page - 1) * limit,
-            take: limit
-        });
-
-        // Count total challenges for pagination
-        const total = await prisma.challenge.count({ where: whereCondition });
+            }),
+            prisma.challenge.count({ where: whereCondition })
+        ]);
 
         return NextResponse.json({
             challenges: challenges.map(challenge => ({
@@ -76,6 +81,7 @@ export async function GET(request: NextRequest) {
                     ? Math.round((challenge.submissions.filter(s => s.status === 'ACCEPTED').length / challenge.submissions.length) * 100)
                     : 0
             })),
+            categories, // Include all categories in the response
             pagination: {
                 total,
                 page,

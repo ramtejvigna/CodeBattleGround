@@ -305,7 +305,7 @@ int main() {
 
   if (!challenge) {
     return (
-      <div className={`min-h-screen ${theme === "dark" ? "bg-gray-900 text-gray-300" : "bg-white text-gray-800"}`}>
+      <div className={`min-h-screen bg-background text-foreground`}>
         <div className="container mx-auto px-4 py-16 text-center">
           <XCircle size={64} className="mx-auto mb-4 text-red-500" />
           <h1 className="text-3xl font-bold mb-4">Challenge Not Found</h1>
@@ -335,16 +335,19 @@ int main() {
               <div className="p-5">
                 <div className="flex justify-between items-start mb-4">
                   <h1 className="text-2xl font-bold">{challenge.title}</h1>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 mb-4">
+                  <div className="flex items-center gap-2">
+                    <User size={16} className="text-gray-500" />
+                    <span className="text-sm text-gray-500">Created by {challenge.creator.username}</span>
+                  </div>
+                  
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getDifficultyColor(challenge.difficulty)}`}
                   >
                     {challenge.difficulty.charAt(0) + challenge.difficulty.slice(1).toLowerCase()}
                   </span>
-                </div>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <User size={16} className="text-gray-500" />
-                  <span className="text-sm text-gray-500">Created by {challenge.creator.username}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-6">

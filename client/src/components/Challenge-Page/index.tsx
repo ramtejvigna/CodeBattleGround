@@ -30,6 +30,12 @@ interface Challenge {
     isFavorite?: boolean
 }
 
+interface Category {
+    id: string
+    name: string
+    description: string
+}
+
 // Create a client component that uses useSearchParams
 function ChallengesContent() {
     const router = useRouter()
@@ -37,6 +43,7 @@ function ChallengesContent() {
 
     // State
     const [allChallenges, setAllChallenges] = useState<Challenge[]>([])
+    const [categories, setCategories] = useState<Category[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "")
     const [difficulty, setDifficulty] = useState(searchParams.get("difficulty") || "all")
@@ -53,6 +60,10 @@ function ChallengesContent() {
 
             if (data.challenges) {
                 setAllChallenges(data.challenges)
+            }
+
+            if(data.categories) {
+                setCategories(data.categories)
             }
         } catch (error) {
             console.error("Error fetching challenges:", error)
@@ -142,7 +153,7 @@ function ChallengesContent() {
     }
 
     return (
-        <div className="container max-w-7xl mx-auto px-4 py-8">
+        <div className="container max-w-7xl mx-auto px-4 py-8 bg-background text-foreground">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
                 <div>
@@ -226,7 +237,7 @@ function ChallengesContent() {
                         </RadioGroup>
                     </div>
 
-                    {/* Category */}
+                    {/* Category - Now Dynamic from API */}
                     <div className="mb-8">
                         <h3 className="text-lg font-semibold mb-3">Category</h3>
                         <RadioGroup value={category} onValueChange={setCategory} className="space-y-2">
@@ -234,18 +245,12 @@ function ChallengesContent() {
                                 <RadioGroupItem value="all" id="all-categories" />
                                 <Label htmlFor="all-categories">All Categories</Label>
                             </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="algorithms" id="algorithms" />
-                                <Label htmlFor="algorithms">Algorithms</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="data-structures" id="data-structures" />
-                                <Label htmlFor="data-structures">Data Structures</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="system-design" id="system-design" />
-                                <Label htmlFor="system-design">System Design</Label>
-                            </div>
+                            {categories.map((cat) => (
+                                <div key={cat.id} className="flex items-center space-x-2">
+                                    <RadioGroupItem value={cat.name.toLowerCase()} id={cat.id} />
+                                    <Label htmlFor={cat.id}>{cat.name}</Label>
+                                </div>
+                            ))}
                         </RadioGroup>
                     </div>
 
@@ -271,6 +276,23 @@ function ChallengesContent() {
                 <div className="flex flex-col gap-4 p-6 rounded-lg">
                     {loading ? (
                         <Loader />
+                    ) : filteredChallenges.length === 0 ? (
+                        <div className="text-center py-12">
+                            <p className="text-lg text-gray-500">No challenges found matching your filters.</p>
+                            <Button 
+                                variant="link" 
+                                className="mt-2 text-orange-600" 
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setDifficulty('all');
+                                    setCategory('all');
+                                    setSortBy('newest');
+                                    router.push('/challenges');
+                                }}
+                            >
+                                Clear all filters
+                            </Button>
+                        </div>
                     ) : (
                         filteredChallenges.map((challenge) => (
                             <Link key={challenge.id} href={`/challenge/${challenge.id}`}>
