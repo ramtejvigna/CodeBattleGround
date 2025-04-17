@@ -5,18 +5,27 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+interface UpdateProfileRequest {
+    name?: string;
+    email?: string;
+    phone?: string;
+    bio?: string;
+    image?: string;
+    preferredLanguage?: string;
+    userId: string;
+}
 
 export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || !session.user) {
+        if (!session?.user) {
             return NextResponse.json(
                 { success: false, message: 'Unauthorized' },
                 { status: 401 }
             );
         }
 
-        const body = await req.json();
+        const body = await req.json() as UpdateProfileRequest;
         const { name, email, phone, bio, image, preferredLanguage, userId } = body;
 
         if (!name || !email || !userId) {
@@ -38,17 +47,19 @@ export async function POST(req: NextRequest) {
             name,
             email,
             ...(image && { image }),
-            updatedAt: new Date() // Explicitly set updatedAt
+            updatedAt: new Date()
         };
 
-        // Prepare user profile data only if any profile fields are provided
-        if (bio !== undefined || phone !== undefined || preferredLanguage !== undefined) {
+        // Only include profile fields if at least one is provided
+        const hasProfileUpdates = bio !== undefined || phone !== undefined || preferredLanguage !== undefined;
+        
+        if (hasProfileUpdates) {
             updateData.userProfile = {
                 upsert: {
                     create: {
                         bio: bio || '',
                         phone: phone || '',
-                        preferredLanguage: preferredLanguage || 'en', // default language
+                        preferredLanguage: preferredLanguage || 'en',
                         rank: 0,
                         solved: 0,
                         level: 1,
@@ -78,15 +89,17 @@ export async function POST(req: NextRequest) {
             success: true,
             user: updatedUser
         });
-    } catch (error) {
-        console.error('Profile update error:', error); // Better error logging
+    } catch (err) {
+        console.error('Error updating profile:', err instanceof Error ? err.message : err);
         return NextResponse.json(
             { 
                 success: false, 
                 message: 'Failed to update profile',
-                error: error
+                error: err instanceof Error ? err.message : 'Unknown error'
             },
             { status: 500 }
         );
+    } finally {
+        await prisma.$disconnect();
     }
 }

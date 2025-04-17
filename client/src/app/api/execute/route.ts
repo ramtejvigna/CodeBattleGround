@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     // If this is a submission, save the results
     if (isSubmission && userId) {
-      let status: SubmissionStatus = allPassed ? "ACCEPTED" : "WRONG_ANSWER"
+      const status: SubmissionStatus = allPassed ? "ACCEPTED" : "WRONG_ANSWER"
 
       const language_db = await prisma.language.findFirst({
         where: { name: { equals: language, mode: "insensitive" } },

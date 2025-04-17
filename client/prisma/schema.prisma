@@ -133,6 +133,7 @@ model Challenge {
   attempts        ChallengeAttempt[]
   likes           ChallengeLike[]
   category        ChallengeCategory @relation(fields: [categoryId], references: [id])
+  challengeType   ChallengeType?
   categoryId      String
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -205,6 +206,12 @@ model AdminLead {
     accessLevel     Int       @default(1)
     createdAt       DateTime  @default(now())
     updatedAt       DateTime  @updatedAt
+}
+
+enum ChallengeType {
+  SYSTEM_DESIGN
+  ALGORITHM
+  DATA_STRUCTURE
 }
 
 enum Difficulty {

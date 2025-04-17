@@ -160,17 +160,6 @@ function ChallengesContent() {
                     <h1 className="text-4xl font-bold text-orange-600 mb-2">Coding Challenges</h1>
                     <p className="text-gray-500">Test your skills, solve problems, and climb the leaderboard</p>
                 </div>
-
-                <div className="mt-4 md:mt-0 flex items-center gap-3">
-                    <Button variant="outline" className="flex items-center gap-2">
-                        <Filter size={16} />
-                        <span>Filters</span>
-                    </Button>
-                    <Button className="bg-orange-600 hover:bg-orange-700">
-                        <Zap className="mr-2 h-4 w-4" />
-                        Create Challenge
-                    </Button>
-                </div>
             </div>
 
             {/* Search Bar */}

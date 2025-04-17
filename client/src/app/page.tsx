@@ -25,6 +25,7 @@ const Home = () => {
   const [codeTyped, setCodeTyped] = useState('');
   const [cursor, setCursor] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true); // Add loading state
   const { theme } = useTheme();
   const { user } = useAuth();
 
@@ -68,6 +69,7 @@ const Home = () => {
 
   useEffect(() => {
     const fetchUsers = async () => {
+      setLoading(true); // Set loading to true before fetching
       try {
         const response = await fetch('/api/allUsers', {
           headers: { 'Content-Type': 'application/json' },
@@ -86,6 +88,8 @@ const Home = () => {
         }
       } catch (error) {
         console.error('Error fetching users:', error);
+      } finally {
+        setLoading(false); // Set loading to false after fetching
       }
     };
     fetchUsers();
@@ -110,6 +114,27 @@ const Home = () => {
       };
     })
   : [];
+
+  // Create a skeleton array for loading state
+  const skeletonRows = Array(10).fill(0).map((_, index) => index);
+
+  // Skeleton row component
+  const SkeletonRow = () => (
+    <tr className={`border-t ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
+      <td className="py-4 px-6">
+        <div className={`h-4 w-6 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"} animate-pulse rounded`}></div>
+      </td>
+      <td className="py-4 px-6">
+        <div className={`h-4 w-32 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"} animate-pulse rounded`}></div>
+      </td>
+      <td className="py-4 px-6">
+        <div className={`h-4 w-16 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"} animate-pulse rounded`}></div>
+      </td>
+      <td className="py-4 px-6 text-right">
+        <div className={`h-4 w-6 ml-auto ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"} animate-pulse rounded`}></div>
+      </td>
+    </tr>
+  );
 
   return (
     <div className={`${theme === "dark" && "bg-gray-900 text-gray-200"} min-h-screen `}>
@@ -237,21 +262,34 @@ const Home = () => {
               </tr>
             </thead>
             <tbody>
-              {leaderboard.map((player, index) => (
-                <tr
-                  key={index}
-                  className={`border-t border-gray-700 hover:bg-gray-750 transition-colors ${
-                    player.userProfile?.rank === 1 ? `bg-gradient-to-r ${theme === "dark" ? "from-orange-900/20" : "from-orange-500/40"} to-transparent` : 
-                    player.userProfile?.rank === 2 ? 'bg-gradient-to-r from-gray-700/30 to-transparent' :
-                    player.userProfile?.rank === 3 ? 'bg-gradient-to-r from-yellow-700/20 to-transparent' : ''
-                  }`}
-                >
-                  <td className="py-4 px-6 font-mono">{player.userProfile?.rank}</td>
-                  <td className="py-4 px-6 font-semibold">{player.username}</td>
-                  <td className="py-4 px-6 text-orange-400 font-mono">{player.userProfile?.points.toLocaleString()}</td>
-                  <td className="py-4 px-6 text-right">{player.badge}</td>
+              {loading ? (
+                // Skeleton loading state
+                skeletonRows.map((index) => <SkeletonRow key={index} />)
+              ) : leaderboard.length > 0 ? (
+                // Actual data once loaded
+                leaderboard.map((player, index) => (
+                  <tr
+                    key={index}
+                    className={`border-t border-gray-700 hover:bg-gray-750 transition-colors ${
+                      player.userProfile?.rank === 1 ? `bg-gradient-to-r ${theme === "dark" ? "from-orange-900/20" : "from-orange-500/40"} to-transparent` : 
+                      player.userProfile?.rank === 2 ? 'bg-gradient-to-r from-gray-700/30 to-transparent' :
+                      player.userProfile?.rank === 3 ? 'bg-gradient-to-r from-yellow-700/20 to-transparent' : ''
+                    }`}
+                  >
+                    <td className="py-4 px-6 font-mono">{player.userProfile?.rank}</td>
+                    <td className="py-4 px-6 font-semibold">{player.username}</td>
+                    <td className="py-4 px-6 text-orange-400 font-mono">{player.userProfile?.points.toLocaleString()}</td>
+                    <td className="py-4 px-6 text-right">{player.badge}</td>
+                  </tr>
+                ))
+              ) : (
+                // Empty state when no data available
+                <tr className="border-t border-gray-700">
+                  <td colSpan={4} className="py-8 text-center text-gray-500">
+                    No leaderboard data available
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
