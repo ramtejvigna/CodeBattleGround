@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
                         bio: bio || '',
                         phone: phone || '',
                         preferredLanguage: preferredLanguage || 'en',
-                        rank: 0,
+                        rank: null,
                         solved: 0,
                         level: 1,
                         points: 0,

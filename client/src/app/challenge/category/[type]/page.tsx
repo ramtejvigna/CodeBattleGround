@@ -252,7 +252,7 @@ export default function ChallengesPage() {
                                 transitionDelay: `${0.2 + index * 0.1}s`
                             }}
                         >
-                            <Link href={`/challenges/${challenge.id}`} className="block h-full">
+                            <Link href={`/challenge/${challenge.id}`} className="block h-full">
                                 <Card className="h-full relative bg-gray-900/70 border-gray-700/80 hover:border-orange-500/70 hover:shadow-md hover:shadow-orange-500/10 transition-all duration-300 overflow-hidden group">
                                     {/* Glowing effect on hover */}
                                     <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/0 to-red-600/0 opacity-0 group-hover:opacity-10 transition-opacity duration-500" />

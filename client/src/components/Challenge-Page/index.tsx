@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Loader from "../Loader"
 import Link from "next/link"
+import { useChallengesStore } from "@/lib/store/challengesStore"
 
 // Types
 interface Challenge {
@@ -41,36 +42,20 @@ function ChallengesContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
 
+    // Get data and actions from challenges store
+    const { 
+        challenges: allChallenges, 
+        categories, 
+        isLoading: loading, 
+        fetchChallenges 
+    } = useChallengesStore()
+
     // State
-    const [allChallenges, setAllChallenges] = useState<Challenge[]>([])
-    const [categories, setCategories] = useState<Category[]>([])
-    const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "")
     const [difficulty, setDifficulty] = useState(searchParams.get("difficulty") || "all")
     const [category, setCategory] = useState(searchParams.get("category") || "all")
     const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "newest")
     const [activeTab, setActiveTab] = useState("all")
-
-    // Fetch challenges
-    const fetchChallenges = async () => {
-        setLoading(true)
-        try {
-            const response = await fetch("/api/challenges")
-            const data = await response.json()
-
-            if (data.challenges) {
-                setAllChallenges(data.challenges)
-            }
-
-            if(data.categories) {
-                setCategories(data.categories)
-            }
-        } catch (error) {
-            console.error("Error fetching challenges:", error)
-        } finally {
-            setLoading(false)
-        }
-    }
 
     // Memoized filtered and sorted challenges
     const filteredChallenges = useMemo(() => {
@@ -114,7 +99,7 @@ function ChallengesContent() {
         })
     }, [allChallenges, searchTerm, difficulty, category, sortBy, activeTab])
 
-    // Apply filters to URL
+    // Apply filters to URL and fetch challenges with filters
     const applyFilters = () => {
         const params = new URLSearchParams()
         if (searchTerm) params.set("search", searchTerm)
@@ -122,7 +107,12 @@ function ChallengesContent() {
         if (category !== "all") params.set("category", category)
         params.set("sortBy", sortBy)
 
-        router.push(`/challenges?${params.toString()}`)
+        // Update URL
+        router.push(`/challenge?${params.toString()}`)
+
+        // Fetch challenges with filters
+        fetchChallenges(1, 10, searchTerm, difficulty !== "all" ? difficulty : undefined, 
+            category !== "all" ? category : undefined, sortBy)
     }
 
     // Handle search
@@ -134,7 +124,7 @@ function ChallengesContent() {
     // Fetch challenges on mount
     useEffect(() => {
         fetchChallenges()
-    }, [])
+    }, [fetchChallenges])
 
     // Get difficulty badge color
     const getDifficultyColor = (difficulty: string) => {
@@ -153,7 +143,7 @@ function ChallengesContent() {
     }
 
     return (
-        <div className="container max-w-7xl mx-auto px-4 py-8 bg-background text-foreground">
+        <div className="container max-w-7xl mx-auto px-4 py-8 ">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
                 <div>
@@ -290,7 +280,7 @@ function ChallengesContent() {
                                         <div className="flex justify-between items-start mb-4">
                                             <h3 className="text-xl font-bold flex items-center">
                                                 {challenge.title}
-                                                {challenge.isFavorite && <span className="text-yellow-400 ml-2">★</span>}
+                                                {/* {challenge.isFavorite && <span className="text-yellow-400 ml-2">★</span>} */}
                                             </h3>
                                             <div className="flex gap-2">
                                                 <span

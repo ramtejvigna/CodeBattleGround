@@ -2,8 +2,8 @@ import prisma from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const topUsers = await prisma.userProfile.findMany({
-      take: 100,
+    // First, get all user profiles with their user role information
+    const allUserProfiles = await prisma.userProfile.findMany({
       orderBy: {
         points: "desc",
       },
@@ -13,6 +13,7 @@ export async function GET() {
             name: true,
             username: true,
             image: true,
+            role: true, // Include role to filter out admins
           },
         },
         badges: {
@@ -20,6 +21,14 @@ export async function GET() {
         },
       },
     });
+
+    // Filter out admin users and assign consecutive ranks to regular users
+    const topUsers = allUserProfiles
+      .filter(profile => profile.user.role !== "ADMIN")
+      .map((profile, index) => ({
+        ...profile,
+        rank: index + 1 // Assign consecutive ranks starting from 1
+      }));
 
     return new Response(JSON.stringify(topUsers), {
       status: 200,

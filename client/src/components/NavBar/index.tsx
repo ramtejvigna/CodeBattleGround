@@ -66,14 +66,6 @@ const NavBar = () => {
                                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-tr from-[#F14A00] to-[#C62300] rounded-full group-hover:w-full transition-all duration-300"></span>
                             </Link>
                         </li>
-                        <li>
-                            <Link href="/certifications" className="relative group">
-                                <span className="cursor-pointer transition-colors duration-300">
-                                    Certifications
-                                </span>
-                                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-tr from-[#F14A00] to-[#C62300] rounded-full group-hover:w-full transition-all duration-300"></span>
-                            </Link>
-                        </li>
                         <li onClick={() => setGridModel(prev => !prev)}>
                             <span className="cursor-pointer transition-colors duration-300">
                                 <Grip />
@@ -92,7 +84,7 @@ const NavBar = () => {
                         {userData ? (
                             <>
                                 <li>
-                                    <Link href="/profile" className="relative group">
+                                    <Link href={`/profile/${userData?.username}`} className="relative group">
                                         <div className="w-12 h-12 border- border-orange-600 uppercase rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-2xl font-bold text-white relative group overflow-hidden">
                                             {userData?.image ? (
                                                 <img

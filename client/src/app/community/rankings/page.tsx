@@ -1,20 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Key, useEffect } from "react";
 import { Award, Medal, Search, Trophy, Moon, Sun } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/context/ThemeContext";
-import { User } from "@/lib/interfaces";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRankingsStore } from "@/lib/store";
 
 export default function RankingsPage() {
-    const [topUsers, setTopUsers] = useState<User>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const { theme, setTheme } = useTheme();
+    const { theme } = useTheme();
+    const { fetchRankings, topUsers, isLoading, error } = useRankingsStore();
 
     useEffect(() => {
         document.documentElement.classList.remove('light', 'dark');
@@ -22,24 +20,12 @@ export default function RankingsPage() {
     }, [theme]);
 
     useEffect(() => {
-        const fetchRankings = async () => {
-            try {
-                const response = await fetch('/api/rankings');
-                const data = await response.json();
-                setTopUsers(data);
-            } catch (error) {
-                console.error("Failed to fetch rankings:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchRankings();
     }, []);
 
-    if (loading) {
+    if (isLoading) {
         return (
-            <div className="space-y-8 animate-in fade-in-50 duration-500">
+            <div className="space-y-8 px-24 py-12 animate-in fade-in-50 duration-500">
                 <div className="flex justify-between items-center">
                     <div className="flex flex-col gap-2">
                         <Skeleton className="h-8 w-48" />
@@ -119,7 +105,7 @@ export default function RankingsPage() {
                         <h3 className="text-xl font-bold">{user.user.name || user.user.username}</h3>
                         <p className={theme === 'dark' ? "text-gray-400 mb-2" : "text-gray-500 mb-2"}>@{user.user.username}</p>
                         <div className="flex gap-1 mb-4">
-                            {user.badges.map((badge) => (
+                            {user.badges.map((badge: { id: Key | null | undefined; name: any; }) => (
                                 <Badge
                                     key={badge.id}
                                     variant="outline"
@@ -154,9 +140,8 @@ export default function RankingsPage() {
                         <TableRow className={`${theme === 'dark' ? 'hover:bg-gray-800/60 border-gray-700' : 'hover:bg-gray-50 border-gray-200'}`}>
                             <TableHead className="w-16 text-center">Rank</TableHead>
                             <TableHead>User</TableHead>
-                            <TableHead className="hidden md:table-cell">Badges</TableHead>
-                            <TableHead className="text-right">Points</TableHead>
-                            <TableHead className="text-right">Solved</TableHead>
+                            <TableHead className="text-center">Points</TableHead>
+                            <TableHead className="text-center">Solved</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -175,25 +160,9 @@ export default function RankingsPage() {
                                         </div>
                                     </div>
                                 </TableCell>
-                                <TableCell className="hidden md:table-cell">
-                                    <div className="flex gap-1">
-                                        {user.badges.map((badge) => (
-                                            <Badge
-                                                key={badge.id}
-                                                variant="outline"
-                                                className={
-                                                    theme === 'dark'
-                                                        ? "bg-gray-700/50 text-gray-300 border-gray-600"
-                                                        : "bg-gray-100 text-gray-700 border-gray-200"
-                                                }
-                                            >
-                                                {badge.name}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </TableCell>
-                                <TableCell className="text-right font-medium">{user.points}</TableCell>
-                                <TableCell className="text-right">{user.solved}</TableCell>
+                                
+                                <TableCell className="text-center font-medium">{user.points}</TableCell>
+                                <TableCell className="text-center">{user.solved}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

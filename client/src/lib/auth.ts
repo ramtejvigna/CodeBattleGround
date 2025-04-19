@@ -162,7 +162,7 @@ export const authOptions: NextAuthOptions = {
                             data: {
                                 userId: dbUser.id,
                                 preferredLanguage: 'JavaScript',
-                                rank: 0,
+                                rank: null,
                                 solved: 0,
                                 level: 1,
                                 points: 0,

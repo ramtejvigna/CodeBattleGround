@@ -43,9 +43,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Calculate the total number of users to determine the rank
-        const totalUsers = await prisma.user.count();
-
         // Hash the password
         const hashPassword = await bcrypt.hash(password, 10);
 
@@ -59,7 +56,7 @@ export async function POST(req: NextRequest) {
                 userProfile: {
                     create: {
                         preferredLanguage: preferredLanguage || 'JavaScript',
-                        rank: totalUsers + 1, // Ensure this is recognized
+                        rank: null, // Don't set rank here, it will be calculated by the rankings API
                         solved: 0,
                         level: 1,
                         points: 0,

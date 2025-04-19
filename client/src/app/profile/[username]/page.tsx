@@ -24,11 +24,11 @@ import {
     Bug,
     AlertOctagon
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import Loader from '@/components/Loader';
 import { Activity as ActivityType, Language, Submission } from '@/lib/interfaces';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { useUserProfile } from '@/context/UserProfileContext';
+import { useProfileStore } from '@/lib/store/profileStore';
 import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
@@ -39,7 +39,6 @@ export default function ProfilePage() {
     )
 }
 
-// Helper function to format date
 const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -80,24 +79,26 @@ const ProfileContent = () => {
     const [submissionsLoading, setSubmissionsLoading] = useState(false);
     const [submissionsPage, setSubmissionsPage] = useState(1);
     const [hasMoreSubmissions, setHasMoreSubmissions] = useState(true);
-    const [pointsBreakdown, setPointsBreakdown] = useState({
-        challenges: 0,
-        contests: 0,
-        badges: 0,
-        discussions: 0
-    });
 
-    const { userData, loading, refetchUserData } = useUserProfile();
-    const { user } = useAuth();
+    // Get profile data from Zustand store
+    const { userData, isLoading, fetchUserProfile } = useProfileStore();
+    const { refetchUserData } = useUserProfile();
+
+    // Fetch profile data when user is authenticated
+    useEffect(() => {
+        if (userData?.username) {
+            fetchUserProfile(userData.id);
+        }
+    }, [userData?.username, fetchUserProfile]);
 
     // Fetch recent activity
     useEffect(() => {
         const fetchRecentActivity = async () => {
-            if (!user?.id) return;
+            if (!userData?.id) return;
             
             try {
                 setActivityLoading(true);
-                const response = await fetch(`/api/activity/recent?userId=${user.id}&limit=5`);
+                const response = await fetch(`/api/activity/recent?userId=${userData.id}&limit=5`);
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
@@ -111,16 +112,16 @@ const ProfileContent = () => {
         };
     
         fetchRecentActivity();
-    }, [user?.id]);
+    }, [userData?.id]);
     
     // Fetch submissions when submissions tab is active
     useEffect(() => {
         const fetchSubmissions = async () => {
-            if (!user?.id || activeTab !== 'submissions') return;
+            if (!userData?.id || activeTab !== 'submissions') return;
             
             try {
                 setSubmissionsLoading(true);
-                const response = await fetch(`/api/submissions?userId=${user.id}&page=${submissionsPage}&limit=10`);
+                const response = await fetch(`/api/submissions?userId=${userData.id}&page=${submissionsPage}&limit=10`);
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
@@ -139,27 +140,7 @@ const ProfileContent = () => {
         };
         
         fetchSubmissions();
-    }, [user?.id, activeTab, submissionsPage]);
-    
-    // Fetch detailed points breakdown
-    useEffect(() => {
-        const fetchPointsBreakdown = async () => {
-            if (!user?.id) return;
-            
-            try {
-                const response = await fetch(`/api/profile/points-breakdown?userId=${user.id}`);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                setPointsBreakdown(data);
-            } catch (error) {
-                console.error("Error fetching points breakdown:", error);
-            }
-        };
-        
-        fetchPointsBreakdown();
-    }, [user?.id]);
+    }, [userData?.id, activeTab, submissionsPage]);
 
     const loadMoreSubmissions = () => {
         setSubmissionsPage(prev => prev + 1);
@@ -182,6 +163,7 @@ const ProfileContent = () => {
                 }
                 toast.success('GitHub account disconnected');
                 refetchUserData();
+                fetchUserProfile(userData.username); // Refetch profile data from store
             } else {
                 window.location.href = '/api/auth/github';
             }
@@ -191,15 +173,23 @@ const ProfileContent = () => {
         }
     };
 
-    if (!user) return null;
+    if (!userData) return null;
 
-    if (loading) {
+    if (isLoading) {
         return <Loader />;
     }
 
     // Prepare preferred languages data
     const languages = userData?.userProfile?.languages || [];
     const hasLanguages = languages.length > 0;
+
+    // Get points breakdown from userData
+    const pointsBreakdown = userData?.pointsBreakdown || {
+        challenges: 0,
+        contests: 0,
+        badges: 0,
+        discussions: 0
+    };
 
     return (
         <div className="bg-gray-900 min-h-screen text-gray-200">
@@ -217,7 +207,7 @@ const ProfileContent = () => {
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
-                                    user?.username?.charAt(0)
+                                    userData?.username?.charAt(0)
                                 )}
                             </div>
 

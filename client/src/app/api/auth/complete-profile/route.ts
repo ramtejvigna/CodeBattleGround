@@ -45,8 +45,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const totalUsers = await prisma.user.count();
-
         const user = await prisma.user.update({
             where: { id: session.user.id },
             data: {
@@ -55,7 +53,7 @@ export async function POST(req: NextRequest) {
                     upsert: {
                         create: {
                             preferredLanguage,
-                            rank: totalUsers,
+                            rank: null,
                             solved: 0,
                             level: 1,
                             points: 0,
