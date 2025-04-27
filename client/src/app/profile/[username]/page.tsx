@@ -25,18 +25,28 @@ import {
     AlertOctagon
 } from 'lucide-react';
 import Loader from '@/components/Loader';
-import { Activity as ActivityType, Language, Submission } from '@/lib/interfaces';
+import { Language } from '@/lib/interfaces';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { useUserProfile } from '@/context/UserProfileContext';
 import { useProfileStore } from '@/lib/store/profileStore';
 import toast from 'react-hot-toast';
+import StatisticsDashboard from '@/components/statistics-dashboard';
 
-export default function ProfilePage() {
+
+export default function UserProfilePage({ params }: { params: { username: string } }) {
+    const { fetchUserProfileByUsername } = useProfileStore();
+    const { username } = params;
+
+    useEffect(() => {
+        if (username) {
+            fetchUserProfileByUsername(username);
+        }
+    }, [username, fetchUserProfileByUsername]);
+
     return (
         <ProtectedRoute>
             <ProfileContent />
         </ProtectedRoute>
-    )
+    );
 }
 
 const formatDate = (dateString: string) => {
@@ -73,98 +83,55 @@ const formatStatus = (status: string) => {
 
 const ProfileContent = () => {
     const [activeTab, setActiveTab] = useState('overview');
-    const [recentActivity, setRecentActivity] = useState<ActivityType[]>([]);
-    const [activityLoading, setActivityLoading] = useState(false);
-    const [submissions, setSubmissions] = useState<Submission[]>([]);
-    const [submissionsLoading, setSubmissionsLoading] = useState(false);
-    const [submissionsPage, setSubmissionsPage] = useState(1);
-    const [hasMoreSubmissions, setHasMoreSubmissions] = useState(true);
 
-    // Get profile data from Zustand store
-    const { userData, isLoading, fetchUserProfile } = useProfileStore();
-    const { refetchUserData } = useUserProfile();
+    // Get all profile data from Zustand store
+    const {
+        userData,
+        isLoading,
+        fetchUserProfileByUsername,
+        recentActivity,
+        activityLoading,
+        fetchRecentActivity,
+        submissions,
+        submissionsLoading,
+        hasMoreSubmissions,
+        loadMoreSubmissions,
+        fetchSubmissions,
+        handleGithubConnection
+    } = useProfileStore();
 
     // Fetch profile data when user is authenticated
     useEffect(() => {
         if (userData?.username) {
-            fetchUserProfile(userData.id);
+            fetchUserProfileByUsername(userData.username);
         }
-    }, [userData?.username, fetchUserProfile]);
+    }, [userData?.username, fetchUserProfileByUsername]);
 
     // Fetch recent activity
     useEffect(() => {
-        const fetchRecentActivity = async () => {
-            if (!userData?.id) return;
-            
-            try {
-                setActivityLoading(true);
-                const response = await fetch(`/api/activity/recent?userId=${userData.id}&limit=5`);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                setRecentActivity(data);
-            } catch (error) {
-                console.error("Error fetching recent activity:", error);
-            } finally {
-                setActivityLoading(false);
-            }
-        };
-    
-        fetchRecentActivity();
-    }, [userData?.id]);
-    
+        if (userData?.id && activeTab === 'overview') {
+            fetchRecentActivity(userData.id, 5);
+        }
+    }, [userData?.id, activeTab, fetchRecentActivity]);
+
     // Fetch submissions when submissions tab is active
     useEffect(() => {
-        const fetchSubmissions = async () => {
-            if (!userData?.id || activeTab !== 'submissions') return;
-            
-            try {
-                setSubmissionsLoading(true);
-                const response = await fetch(`/api/submissions?userId=${userData.id}&page=${submissionsPage}&limit=10`);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                if (submissionsPage === 1) {
-                    setSubmissions(data.submissions);
-                } else {
-                    setSubmissions(prev => [...prev, ...data.submissions]);
-                }
-                setHasMoreSubmissions(data.hasMore);
-            } catch (error) {
-                console.error("Error fetching submissions:", error);
-            } finally {
-                setSubmissionsLoading(false);
-            }
-        };
-        
-        fetchSubmissions();
-    }, [userData?.id, activeTab, submissionsPage]);
+        if (userData?.id && activeTab === 'submissions') {
+            fetchSubmissions(userData.id, 1);
+        }
+    }, [userData?.id, activeTab, fetchSubmissions]);
 
-    const loadMoreSubmissions = () => {
-        setSubmissionsPage(prev => prev + 1);
-    };
-
-    const handleGithubConnection = async () => {
+    const handleGithubConnectionClick = async () => {
         if (!userData) return;
-        
+
         try {
-            if (userData.githubConnected) {
-                const response = await fetch('/api/profile/disconnect-github', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ userId: userData.id }),
-                });
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
+            const success = await handleGithubConnection(userData.id, userData.githubConnected);
+
+            if (success) {
                 toast.success('GitHub account disconnected');
-                refetchUserData();
-                fetchUserProfile(userData.username); // Refetch profile data from store
-            } else {
+                fetchUserProfileByUsername(userData.username);
+            } else if (!userData.githubConnected) {
+                // Redirect to GitHub auth
                 window.location.href = '/api/auth/github';
             }
         } catch (err) {
@@ -180,8 +147,55 @@ const ProfileContent = () => {
     }
 
     // Prepare preferred languages data
-    const languages = userData?.userProfile?.languages || [];
-    const hasLanguages = languages.length > 0;
+    const submissionLanguages = submissions.reduce((acc, submission) => {
+        const existingLang = acc.find(lang => lang.name === submission.language.name);
+        if (existingLang) {
+            // If you want to track usage count for percentage calculation
+            existingLang.count = (existingLang.count || 0) + 1;
+        } else {
+            acc.push({
+                ...submission.language,
+                count: 1,
+                id: '',
+                percentage: 0,
+                starterCode: '',
+                createdAt: '',
+                updatedAt: ''
+            });
+        }
+        return acc;
+    }, [] as Array<Language & { count?: number }>);
+
+    // Calculate percentages if needed (assuming you want to show usage frequency)
+    const totalSubmissions = submissions.length;
+    const languagesWithPercentages = submissionLanguages.map(lang => ({
+        ...lang,
+        percentage: totalSubmissions > 0 ? Math.round((lang.count! / totalSubmissions) * 100) : 0
+    }));
+
+    // Get preferred language if it exists
+    const preferredLanguage = userData?.userProfile?.preferredLanguage;
+
+    // Merge languages, ensuring preferred language is included and marked
+    const allLanguages = [
+        // Add preferred language as a special entry if it exists
+        ...(preferredLanguage ? [{
+            id: 'preferred',
+            name: preferredLanguage,
+            percentage: 100, // or calculate if it exists in submissions
+            isPreferred: true
+        }] : []),
+
+        // Add other languages from submissions
+        ...languagesWithPercentages
+            .filter(lang => !preferredLanguage || lang.name !== preferredLanguage)
+            .map(lang => ({
+                ...lang,
+                isPreferred: false
+            }))
+    ];
+
+    const hasLanguages = allLanguages.length > 0;
 
     // Get points breakdown from userData
     const pointsBreakdown = userData?.pointsBreakdown || {
@@ -335,20 +349,15 @@ const ProfileContent = () => {
 
                                 <div className="mt-6">
                                     <h3 className="text-sm font-semibold text-gray-400 mb-3">Preferred Languages</h3>
-                                    
                                     {hasLanguages ? (
                                         <div className="space-y-3">
-                                            {languages.map((lang: Language, i) => (
-                                                <div key={i}>
-                                                    <div className="flex justify-between text-sm mb-1">
-                                                        <span>{lang.name}</span>
-                                                        <span className="text-gray-400">{lang.percentage}%</span>
-                                                    </div>
-                                                    <div className="w-full bg-gray-700 rounded-full h-2">
-                                                        <div
-                                                            className="bg-gradient-to-r from-orange-500 to-red-600 h-2 rounded-full"
-                                                            style={{ width: `${lang.percentage}%` }}
-                                                        ></div>
+                                            {allLanguages.map((lang, i) => (
+                                                <div key={lang.id || i}>
+                                                    <div className="flex justify-between text-sm mb-1 bg-primary/70 rounded-lg p-2 w-fit">
+                                                        <span className={lang.isPreferred ? 'font-medium' : ''}>
+                                                            {lang.name}
+                                                            {lang.isPreferred && ' (Preferred)'}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             ))}
@@ -384,14 +393,13 @@ const ProfileContent = () => {
                                     <div className="space-y-4">
                                         {recentActivity.map((activity, i) => (
                                             <div key={i} className="flex items-start p-3 rounded-lg hover:bg-gray-750 transition-colors">
-                                                <div className={`p-2 rounded-lg mr-3 ${
-                                                    activity.type === 'challenge' ? 'bg-blue-500/20 text-blue-400' :
+                                                <div className={`p-2 rounded-lg mr-3 ${activity.type === 'challenge' ? 'bg-blue-500/20 text-blue-400' :
                                                     activity.type === 'contest' ? 'bg-purple-500/20 text-purple-400' :
-                                                    'bg-green-500/20 text-green-400'
-                                                }`}>
+                                                        'bg-green-500/20 text-green-400'
+                                                    }`}>
                                                     {activity.type === 'challenge' ? <Code className="w-5 h-5" /> :
-                                                    activity.type === 'contest' ? <Trophy className="w-5 h-5" /> :
-                                                    <Award className="w-5 h-5" />}
+                                                        activity.type === 'contest' ? <Trophy className="w-5 h-5" /> :
+                                                            <Award className="w-5 h-5" />}
                                                 </div>
 
                                                 <div className="flex-grow">
@@ -468,7 +476,7 @@ const ProfileContent = () => {
                                         <div className="text-xs text-gray-400 mt-1">From Discussions</div>
                                     </div>
                                 </div>
-                                
+
                                 {/* Progress to next level */}
                                 <div className="mt-6">
                                     <div className="flex justify-between text-sm mb-1">
@@ -504,10 +512,10 @@ const ProfileContent = () => {
                                             <div key={i} className="bg-gray-750 rounded-lg p-3 flex flex-col items-center text-center group hover:bg-gray-700 transition-colors cursor-pointer">
                                                 <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center mb-2 text-orange-500 group-hover:scale-110 transition-transform">
                                                     {badge.iconType === 'calendar' ? <Calendar className="w-4 h-4" /> :
-                                                    badge.iconType === 'code' ? <Code className="w-4 h-4" /> :
-                                                    badge.iconType === 'zap' ? <Zap className="w-4 h-4" /> :
-                                                    badge.iconType === 'star' ? <Star className="w-4 h-4" /> :
-                                                    <Award className="w-4 h-4" />}
+                                                        badge.iconType === 'code' ? <Code className="w-4 h-4" /> :
+                                                            badge.iconType === 'zap' ? <Zap className="w-4 h-4" /> :
+                                                                badge.iconType === 'star' ? <Star className="w-4 h-4" /> :
+                                                                    <Award className="w-4 h-4" />}
                                                 </div>
                                                 <div className="font-medium text-sm">{badge.name}</div>
                                             </div>
@@ -536,7 +544,7 @@ const ProfileContent = () => {
                                 </p>
                                 <button
                                     className="w-full mt-4 px-4 py-2 border border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-750 transition-colors"
-                                    onClick={handleGithubConnection}
+                                    onClick={handleGithubConnectionClick}
                                 >
                                     {userData?.githubConnected ? "Disconnect GitHub" : "Connect GitHub"}
                                 </button>
@@ -585,12 +593,12 @@ const ProfileContent = () => {
                         )}
                     </div>
                 )}
-                
+
                 {activeTab === 'submissions' && (
                     <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
                         <h2 className="text-xl font-bold mb-6">Submissions History</h2>
 
-                        {submissionsLoading && submissionsPage === 1 ? (
+                        {submissionsLoading && submissions.length === 0 ? (
                             <div className="flex justify-center py-8">
                                 <Loader />
                             </div>
@@ -610,8 +618,8 @@ const ProfileContent = () => {
                                         </thead>
                                         <tbody>
                                             {submissions.map((submission, i) => (
-                                                <tr 
-                                                    key={i} 
+                                                <tr
+                                                    key={i}
                                                     className="border-b border-gray-700 hover:bg-gray-750 cursor-pointer transition-colors"
                                                     onClick={() => window.location.href = `/submissions/${submission.id}`}
                                                 >
@@ -637,7 +645,7 @@ const ProfileContent = () => {
                                     </table>
                                 </div>
 
-                                {submissionsLoading && submissionsPage > 1 && (
+                                {submissionsLoading && submissions.length > 0 && (
                                     <div className="flex justify-center py-4">
                                         <Loader />
                                     </div>
@@ -677,181 +685,27 @@ const ProfileContent = () => {
                 {activeTab === 'contests' && (
                     <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
                         <h2 className="text-xl font-bold mb-6">Contest History</h2>
-                        
-                        {/* {userData?.userProfile?.contests && userData.userProfile.contests.length > 0 ? (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="text-left text-gray-400 text-sm border-b border-gray-700">
-                                            <th className="pb-3 pl-2">Contest</th>
-                                            <th className="pb-3">Rank</th>
-                                            <th className="pb-3">Score</th>
-                                            <th className="pb-3">Solved</th>
-                                            <th className="pb-3 text-right pr-2">Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {userData.userProfile.contests.map((contest, i) => (
-                                            <tr 
-                                                key={i} 
-                                                className="border-b border-gray-700 hover:bg-gray-750 cursor-pointer transition-colors"
-                                                onClick={() => window.location.href = `/contests/${contest.id}`}
-                                            >
-                                                <td className="py-3 pl-2">
-                                                    <div className="font-medium">{contest.name}</div>
-                                                    <div className="text-sm text-gray-400">{contest.type}</div>
-                                                </td>
-                                                <td className="py-3">
-                                                    <div className="flex items-center">
-                                                        <Trophy className="w-4 h-4 text-yellow-500 mr-2" />
-                                                        <span>#{contest.rank}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="py-3">{contest.score} pts</td>
-                                                <td className="py-3">{contest.solved}/{contest.total} problems</td>
-                                                <td className="py-3 text-right pr-2 text-gray-400">
-                                                    {new Date(contest.date).toLocaleDateString()}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+
+                        <div className="py-12 flex flex-col items-center text-center">
+                            <div className="w-20 h-20 rounded-full bg-gray-750 flex items-center justify-center mb-4">
+                                <Trophy className="w-10 h-10 text-gray-500" />
                             </div>
-                        ) : ( */}
-                            <div className="py-12 flex flex-col items-center text-center">
-                                <div className="w-20 h-20 rounded-full bg-gray-750 flex items-center justify-center mb-4">
-                                    <Trophy className="w-10 h-10 text-gray-500" />
-                                </div>
-                                <h3 className="text-xl font-medium text-gray-300">No Contest Participation Yet</h3>
-                                <p className="text-gray-400 mt-3 max-w-md">
-                                    You haven't participated in any contests yet. Join upcoming contests to compete with other developers and earn ranking points.
-                                </p>
-                                <button
-                                    className="mt-6 px-5 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white font-medium transition-colors"
-                                    onClick={() => window.location.href = '/contests'}
-                                >
-                                    View Upcoming Contests
-                                </button>
-                            </div>
-                        {/* )} */}
+                            <h3 className="text-xl font-medium text-gray-300">No Contest Participation Yet</h3>
+                            <p className="text-gray-400 mt-3 max-w-md">
+                                You haven't participated in any contests yet. Join upcoming contests to compete with other developers and earn ranking points.
+                            </p>
+                            <button
+                                className="mt-6 px-5 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white font-medium transition-colors"
+                                onClick={() => window.location.href = '/contests'}
+                            >
+                                View Upcoming Contests
+                            </button>
+                        </div>
                     </div>
                 )}
 
                 {activeTab === 'statistics' && (
-                    <div className="space-y-8">
-                        {/* <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                            <h2 className="text-xl font-bold mb-6">Coding Statistics</h2>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                                <div className="bg-gray-750 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-gray-400 text-sm">Total Problems Solved</div>
-                                    <div className="text-3xl font-bold mt-2">{userData?.userProfile?.solved || 0}</div>
-                                    <div className="flex items-center text-gray-400 text-sm mt-3">
-                                        <Activity className="w-4 h-4 mr-1" />
-                                        <span>{userData?.userProfile?.solvedLastMonth || 0} in the last month</span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-gray-750 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-gray-400 text-sm">Submissions</div>
-                                    <div className="text-3xl font-bold mt-2">{userData?.userProfile?.solved || 0}</div>
-                                    <div className="flex items-center text-gray-400 text-sm mt-3">
-                                        <CheckCircle2 className="w-4 h-4 mr-1 text-green-500" />
-                                        <span>{userData?.userProfile?.acceptanceRate || 0}% acceptance rate</span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-gray-750 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-gray-400 text-sm">Streak</div>
-                                    <div className="text-3xl font-bold mt-2">{userData?.userProfile?.streakDays || 0} days</div>
-                                    <div className="flex items-center text-gray-400 text-sm mt-3">
-                                        <Zap className="w-4 h-4 mr-1 text-yellow-500" />
-                                        <span>Longest: {userData?.userProfile?.longestStreak || 0} days</span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-gray-750 rounded-lg p-4 border border-gray-700">
-                                    <div className="text-gray-400 text-sm">Contests</div>
-                                    <div className="text-3xl font-bold mt-2">{userData?.userProfile?.contests?.length || 0}</div>
-                                    <div className="flex items-center text-gray-400 text-sm mt-3">
-                                        <Trophy className="w-4 h-4 mr-1 text-orange-500" />
-                                        <span>Best rank: #{userData?.userProfile?.bestContestRank || '-'}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-8">
-                                <h3 className="text-lg font-semibold mb-4">Problem Difficulty Distribution</h3>
-                                
-                                <div className="grid grid-cols-5 gap-4">
-                                    <div className="bg-gray-750 rounded-lg p-3 text-center">
-                                        <div className="text-sm font-medium text-green-400">Easy</div>
-                                        <div className="text-xl font-bold mt-1">{userData?.userProfile?.easyCount || 0}</div>
-                                        <div className="text-xs text-gray-400 mt-1">solved</div>
-                                    </div>
-                                    
-                                    <div className="bg-gray-750 rounded-lg p-3 text-center">
-                                        <div className="text-sm font-medium text-blue-400">Medium</div>
-                                        <div className="text-xl font-bold mt-1">{userData?.userProfile?.mediumCount || 0}</div>
-                                        <div className="text-xs text-gray-400 mt-1">solved</div>
-                                    </div>
-                                    
-                                    <div className="bg-gray-750 rounded-lg p-3 text-center">
-                                        <div className="text-sm font-medium text-orange-400">Hard</div>
-                                        <div className="text-xl font-bold mt-1">{userData?.userProfile?.hardCount || 0}</div>
-                                        <div className="text-xs text-gray-400 mt-1">solved</div>
-                                    </div>
-                                    
-                                    <div className="bg-gray-750 rounded-lg p-3 text-center">
-                                        <div className="text-sm font-medium text-red-400">Expert</div>
-                                        <div className="text-xl font-bold mt-1">{userData?.userProfile?.expertCount || 0}</div>
-                                        <div className="text-xs text-gray-400 mt-1">solved</div>
-                                    </div>
-                                    
-                                    <div className="bg-gray-750 rounded-lg p-3 text-center">
-                                        <div className="text-sm font-medium text-purple-400">Advanced</div>
-                                        <div className="text-xl font-bold mt-1">{userData?.userProfile?.advancedCount || 0}</div>
-                                        <div className="text-xs text-gray-400 mt-1">solved</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> */}
-
-                        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                            <h2 className="text-xl font-bold mb-6">Topic Expertise</h2>
-                            
-                            {/* {userData?.userProfile?.topicExpertise && userData.userProfile.topicExpertise.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {userData.userProfile.topicExpertise.map((topic, i) => (
-                                        <div key={i} className="bg-gray-750 rounded-lg p-4 border border-gray-700">
-                                            <div className="flex justify-between">
-                                                <div className="font-medium">{topic.name}</div>
-                                                <div className="text-orange-500">{topic.masteryLevel}</div>
-                                            </div>
-                                            <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
-                                                <div
-                                                    className="bg-gradient-to-r from-orange-500 to-red-600 h-2 rounded-full"
-                                                    style={{ width: `${topic.masteryPercentage}%` }}
-                                                ></div>
-                                            </div>
-                                            <div className="flex justify-between text-sm text-gray-400 mt-1">
-                                                <span>{topic.solved} solved</span>
-                                                <span>{topic.masteryPercentage}%</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : ( */}
-                                <div className="bg-gray-750 rounded-lg p-8 flex flex-col items-center text-center">
-                                    <Code2 className="w-12 h-12 text-gray-500 mb-3" />
-                                    <h3 className="text-lg font-medium text-gray-300">No Topic Data Yet</h3>
-                                    <p className="text-gray-400 mt-2 max-w-md">
-                                        Solve more problems to build up your topic expertise metrics.
-                                    </p>
-                                </div>
-                            {/* )} */}
-                        </div>
-                    </div>
+                    <StatisticsDashboard submissions={submissions} />
                 )}
             </div>
         </div>

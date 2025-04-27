@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { useTheme } from "@/context/ThemeContext"
-import { useAuth } from "@/context/AuthContext"
+import { useProfileStore } from "@/lib/store/profileStore"
 import {
   Award,
   Clock,
@@ -73,12 +73,13 @@ interface TestResult {
 const ChallengePage = () => {
   const { id } = useParams()
   const { theme } = useTheme()
-  const { user } = useAuth()
+
+  const { userData } = useProfileStore();
 
   // State
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedLanguage, setSelectedLanguage] = useState<string>("JavaScript")
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(userData?.userProfile?.preferredLanguage || "JavaScript")
   const [code, setCode] = useState<string>("")
   const [languages, setLanguages] = useState<Language[]>([])
   const [testResults, setTestResults] = useState<TestResult[] | null>(null)
@@ -187,7 +188,7 @@ const ChallengePage = () => {
 
   // Submit solution
   const handleSubmitSolution = async () => {
-    if (!challenge || !selectedLanguage || !user) return
+    if (!challenge || !selectedLanguage || !userData) return
 
     setIsSubmitting(true)
     setSubmissionStatus(null)
@@ -203,7 +204,7 @@ const ChallengePage = () => {
           language: selectedLanguage,
           challengeId: challenge.id,
           isSubmission: true,
-          userId: user.id,
+          userId: userData.id,
         }),
       })
 
@@ -493,9 +494,9 @@ int main() {
 
                   <button
                     onClick={handleSubmitSolution}
-                    disabled={isSubmitting || !code || !user}
+                    disabled={isSubmitting || !code || !userData}
                     className={`flex items-center gap-1 py-1 px-3 rounded text-sm ${
-                      isSubmitting || !code || !user ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
+                      isSubmitting || !code || !userData ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
                     } bg-gradient-to-tr from-[#F14A00] to-[#C62300] text-white transition-opacity`}
                   >
                     {isSubmitting ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}

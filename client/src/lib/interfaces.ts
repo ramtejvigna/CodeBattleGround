@@ -4,8 +4,15 @@ export interface User {
     email: string;
     password?: string;
     name: string | null;
-    username: string;
+    user: {
+        image: string;
+        name: string;
+        role: string;
+        username: string;
+    }
     image: string | null;
+    rank: number;
+    points: number;
     emailVerified: string | null;
     githubConnected: boolean;
     githubUsername?: string | null;

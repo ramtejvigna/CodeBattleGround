@@ -6,7 +6,7 @@ import { Search, Grip, LogIn, UserPlus, LogOut, Moon, Sun } from 'lucide-react';
 import GridModel from './GridModel';
 import { useAuth } from '@/context/AuthContext';
 import Loader from '../Loader';
-import { useUserProfile } from '@/context/UserProfileContext';
+import { useProfileStore } from '@/lib/store';
 import { useTheme } from '@/context/ThemeContext'; // Import the useTheme hook
 
 const NavBar = () => {
@@ -14,10 +14,10 @@ const NavBar = () => {
     const [gridModel, setGridModel] = useState(false);
     const { theme, setTheme } = useTheme(); // Use the theme context
 
-    const { userData, loading } = useUserProfile(); 
+    const { userData, isLoading } = useProfileStore(); 
     const { logout } = useAuth();
 
-    if(loading) {
+    if(isLoading) {
         return <Loader />
     }
 

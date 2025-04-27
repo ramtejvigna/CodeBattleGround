@@ -8,14 +8,31 @@ import { cn } from "@/lib/utils"
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
 
+// interface ChartConfig {
+//   // This can be expanded based on your needs
+//   type?: string
+//   options?: Record<string, any>
+// }
+
+// interface ChartProps extends React.HTMLAttributes<HTMLDivElement> {
+//   config?: ChartConfig
+//   children: React.ReactNode
+// }
+
 export type ChartConfig = {
   [k in string]: {
     label?: React.ReactNode
     icon?: React.ComponentType
+    options?: { layout?: string, [key: string]: any }
   } & (
     | { color?: string; theme?: never }
     | { color?: never; theme: Record<keyof typeof THEMES, string> }
   )
+}
+
+interface ChartProps extends React.HTMLAttributes<HTMLDivElement> {
+  config?: ChartConfig
+  children: React.ReactNode
 }
 
 type ChartContextProps = {
@@ -69,7 +86,7 @@ ChartContainer.displayName = "Chart"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
-    ([, config]) => config.theme || config.color
+    ([_, config]) => config.theme || config.color
   )
 
   if (!colorConfig.length) {
@@ -139,7 +156,7 @@ const ChartTooltipContent = React.forwardRef<
       }
 
       const [item] = payload
-      const key = `${labelKey || item?.dataKey || item?.name || "value"}`
+      const key = `${labelKey || item.dataKey || item.name || "value"}`
       const itemConfig = getPayloadConfigFromPayload(config, item, key)
       const value =
         !labelKey && typeof label === "string"
@@ -355,6 +372,29 @@ function getPayloadConfigFromPayload(
     : config[key as keyof typeof config]
 }
 
+const Chart = React.forwardRef<HTMLDivElement, ChartProps>(
+  ({ className, children, config, ...props }, ref) => {
+    return (
+      <div ref={ref} className={cn("", className)} {...props}>
+        {children}
+      </div>
+    )
+  }
+)
+Chart.displayName = "Chart"
+
+// const ChartContainer = React.forwardRef<
+//   HTMLDivElement,
+//   React.HTMLAttributes<HTMLDivElement>
+// >(({ className, ...props }, ref) => (
+//   <div
+//     ref={ref}
+//     className={cn("w-full h-full", className)}
+//     {...props}
+//   />
+// ))
+// ChartContainer.displayName = "ChartContainer"
+
 export {
   ChartContainer,
   ChartTooltip,
@@ -362,4 +402,5 @@ export {
   ChartLegend,
   ChartLegendContent,
   ChartStyle,
+  Chart
 }

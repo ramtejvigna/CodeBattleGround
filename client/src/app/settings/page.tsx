@@ -1,10 +1,8 @@
 // app/settings/page.tsx
-
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import React from 'react';
 import { User, UserProfile } from '@/lib/interfaces';
 import Loader from '@/components/Loader';
 import {
@@ -25,19 +23,21 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import { useProfileStore } from '@/lib/store';
 
-// Theme interface
 interface ThemeState {
     isDark: boolean;
 }
 
-// Combined user data interface
-interface UserData extends User {
-    userProfile?: UserProfile;
-}
-
 const Settings = () => {
-    const [userData, setUserData] = useState<UserData>();
+    const { user } = useAuth();
+    const {
+        userData,
+        isLoading: profileLoading,
+        fetchUserProfileById,
+        updateUserProfile
+    } = useProfileStore();
+    
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('profile');
@@ -45,7 +45,6 @@ const Settings = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { user } = useAuth();
 
     // Form states for profile info
     const [formData, setFormData] = useState({
@@ -53,52 +52,27 @@ const Settings = () => {
         email: '',
         phone: '',
         bio: '',
-        preferredLanguage: ''
+        preferredLanguage: 'javascript'
     });
 
     useEffect(() => {
-        const fetchUserData = async () => {
-            if (!user) return;
-    
-            try {
-                setLoading(true);
-    
-                const response = await fetch(`/api/profile?id=${user.id}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-    
-                const data = await response.json();
-    
-                if (data.success) {
-                    setUserData(data.user);
-    
-                    // Initialize form data with user data
-                    setFormData({
-                        name: data.user.name || '',
-                        email: data.user.email || '',
-                        phone: data.user.userProfile?.phone || '',
-                        bio: data.user.userProfile?.bio || '',
-                        preferredLanguage: data.user.userProfile?.preferredLanguage || 'javascript' // Ensure this is set correctly
-                    });
-    
-                    // Set image preview if user has an image
-                    if (data.user.image) {
-                        setImagePreview(data.user.image);
-                    }
-                } else {
-                    toast.error("Failed to load profile data");
-                }
-            } catch (err) {
-                console.error("Error fetching profile data:", err);
-                toast.error("Error loading profile");
-            } finally {
-                setLoading(false);
-            }
-        };
-    
-        fetchUserData();
-    }, [user]);
+        if (user?.id) {
+            fetchUserProfileById(user.id).finally(() => setLoading(false));
+        }
+    }, [user?.id, fetchUserProfileById]);
+
+    useEffect(() => {
+        if (userData) {
+            setFormData({
+                name: userData.name || '',
+                email: userData.email || '',
+                phone: userData.userProfile?.phone || '',
+                bio: userData.userProfile?.bio || '',
+                preferredLanguage: userData.userProfile?.preferredLanguage || 'javascript'
+            });
+            setImagePreview(userData.image || null);
+        }
+    }, [userData]);
 
     const toggleTheme = () => {
         setTheme(prev => ({ isDark: !prev.isDark }));
@@ -116,7 +90,6 @@ const Settings = () => {
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // File size validation (limit to 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 toast.error("Image size should be less than 5MB");
                 return;
@@ -141,44 +114,29 @@ const Settings = () => {
             setSaving(true);
 
             const updateData = {
-                ...formData,
+                name: formData.name,
+                email: formData.email,
                 image: imagePreview,
-                userId: user.id
+                profile: {
+                    phone: formData.phone,
+                    bio: formData.bio,
+                    preferredLanguage: formData.preferredLanguage
+                }
             };
 
-            const response = await fetch('/api/profile/update', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(updateData)
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                toast.success("Profile updated successfully");
-                // Update local state with the new data
-                setUserData(prev => ({
-                    ...prev,
-                    ...data.user
-                }));
-            } else {
-                toast.error(data.message || "Failed to update profile");
-            }
+            await updateUserProfile(user.id, updateData);
+            toast.success("Profile updated successfully");
+            setIsEditing(false);
         } catch (err) {
             console.error("Error updating profile:", err);
             toast.error("Error saving profile changes");
         } finally {
             setSaving(false);
-            setIsEditing(false);
         }
     };
 
-    // Move the conditional return after all hooks
     if (!user) return null;
-
-    if (loading) return <Loader />;
+    if (loading || profileLoading) return <Loader />;
 
     const tabs = [
         { id: 'profile', label: 'Profile Settings', icon: <UserIcon className="w-5 h-5" /> },
@@ -256,7 +214,6 @@ const Settings = () => {
                                                         bio: userData?.userProfile?.bio || '',
                                                         preferredLanguage: userData?.userProfile?.preferredLanguage || 'javascript'
                                                     });
-                                                    // Reset image preview
                                                     setImagePreview(userData?.image || null);
                                                 }}
                                                 className={`px-2 py-1 text-sm rounded ${theme.isDark ? 'bg-gray-700 hover:bg-gray-800' : 'bg-gray-300 hover:bg-gray-400'} transition-colors flex items-center gap-1`}
@@ -394,7 +351,7 @@ const Settings = () => {
                                                     <label className="block text-sm font-semibold mb-1">Preferred Language</label>
                                                     <select
                                                         name="preferredLanguage"
-                                                        value={formData.preferredLanguage} // Ensure this is correctly bound
+                                                        value={formData.preferredLanguage}
                                                         onChange={e => setFormData({ ...formData, preferredLanguage: e.target.value })}
                                                         className={`w-full px-3 py-2 rounded-md ${theme.isDark ? 'bg-gray-800' : 'bg-white'} border ${theme.isDark ? 'border-gray-600' : 'border-gray-300'}`}
                                                     >

@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
             },
           })
 
+          // Create activity log
           await prisma.activity.create({
             data: {
               userId,
@@ -117,6 +118,9 @@ export async function POST(req: NextRequest) {
               time: `${Math.round(totalRuntime / challenge.testCases.length)}ms`,
             },
           })
+
+          // Update ranks for all users
+          await updateUserRanks()
         }
       }
     } else if (userId) {
@@ -149,5 +153,30 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("Execution error:", err)
     return NextResponse.json({ error: "Failed to execute code", message: String(err) }, { status: 500 })
+  }
+}
+
+// Function to update user ranks based on their points
+async function updateUserRanks() {
+  try {
+    // Get all user profiles ordered by points (descending)
+    const userProfiles = await prisma.userProfile.findMany({
+      orderBy: {
+        points: 'desc',
+      },
+    })
+
+    // Update ranks for each user
+    let currentRank = 1
+
+    for (const profile of userProfiles) {
+      // Update the user's rank
+      await prisma.userProfile.update({
+        where: { id: profile.id },
+        data: { rank: currentRank++ },
+      })
+    }
+  } catch (error) {
+    console.error("Error updating user ranks:", error)
   }
 }

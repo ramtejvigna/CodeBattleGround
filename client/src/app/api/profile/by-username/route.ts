@@ -7,17 +7,17 @@ const prisma = new PrismaClient();
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const id = searchParams.get('id');
+        const username = searchParams.get('username');
 
-        if (!id) {
+        if (!username) {
             return NextResponse.json(
-                { message: "User ID is required" },
+                { message: "Username is required" },
                 { status: 400 }
             );
         }
 
         const user = await prisma.user.findUnique({
-            where: { id },
+            where: { username },
             include: {
                 userProfile: {
                     include: {
@@ -86,4 +86,4 @@ async function calculatePointsBreakdown(userId: string) {
         badges, 
         discussions
     }
-}
+} 

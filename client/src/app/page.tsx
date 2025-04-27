@@ -30,7 +30,7 @@ const Home = () => {
   const { user } = useAuth()
 
   // Use our Zustand stores
-  const { topUsers, isLoading: rankingsLoading, fetchRankings } = useRankingsStore()
+  const { topUsers, fetchRankings } = useRankingsStore()
   const { challenges, fetchChallenges } = useChallengesStore()
 
   const exampleCode = `function findWinner(scores) {\n  return scores\n    .sort((a, b) => b.points - a.points)\n    .map(player => player.name)[0];\n}`

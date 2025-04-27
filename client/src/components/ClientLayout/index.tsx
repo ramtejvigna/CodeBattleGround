@@ -4,12 +4,11 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
-import { AuthProvider } from "@/context/AuthContext";
-import { UserProfileProvider } from "@/context/UserProfileContext";
+import { AuthProvider } from "@/context/AuthContext"
 import { Toaster } from "react-hot-toast";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/context/ThemeContext";
-import { useChallengesStore, useRankingsStore, useProfileStore } from "@/lib/store";
+import { useChallengesStore, useRankingsStore } from "@/lib/store";
 
 export default function ClientLayout({
     children,
@@ -17,7 +16,7 @@ export default function ClientLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
-    
+
     // Get fetch functions from stores
     const { fetchChallenges } = useChallengesStore();
     const { fetchRankings } = useRankingsStore();
@@ -27,7 +26,7 @@ export default function ClientLayout({
 
     // Check if the current route is in the noNavBarFooterRoutes array
     const shouldShowNavBarFooter = !noNavBarFooterRoutes.includes(pathname) || pathname.startsWith("/admin/");
-    
+
     // Preload common data
     useEffect(() => {
         // Preload challenges and rankings data
@@ -41,20 +40,18 @@ export default function ClientLayout({
                 console.error("Error preloading data:", error);
             }
         };
-        
+
         preloadData();
     }, [fetchChallenges, fetchRankings]);
 
     return (
         <SessionProvider>
             <AuthProvider>
-                <UserProfileProvider>
-                    <ThemeProvider>
-                        {shouldShowNavBarFooter && <NavBar />}
-                        {children}
-                        {shouldShowNavBarFooter && <Footer />}
-                    </ThemeProvider>
-                </UserProfileProvider>
+                <ThemeProvider>
+                    {shouldShowNavBarFooter && <NavBar />}
+                    {children}
+                    {shouldShowNavBarFooter && <Footer />}
+                </ThemeProvider>
                 <Toaster position="top-right" />
             </AuthProvider>
         </SessionProvider>
