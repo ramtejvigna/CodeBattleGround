@@ -55,7 +55,7 @@ const Home = () => {
             : `${Math.max(7 - daysDiff, 1)}d ${23 - now.getHours()}h`
 
         // Calculate fake participants based on submissions count or a random number
-        const participants = challenge.submissions || Math.floor(Math.random() * 300) + 100
+        const participants = challenge.submissions || 0;
 
         return {
           title: challenge.title,

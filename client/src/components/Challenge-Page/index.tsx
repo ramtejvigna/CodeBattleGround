@@ -14,40 +14,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Loader from "../Loader"
 import Link from "next/link"
 import { useChallengesStore } from "@/lib/store/challengesStore"
-
-// Types
-interface Challenge {
-    id: string
-    title: string
-    difficulty: "EASY" | "MEDIUM" | "HARD" | "EXPERT"
-    points: number
-    category: { name: string }
-    description: string
-    languages: string[]
-    likes: number
-    submissions: number
-    successRate: number
-    createdAt: string
-    isFavorite?: boolean
-}
-
-interface Category {
-    id: string
-    name: string
-    description: string
-}
+import { useTheme } from "@/context/ThemeContext"
 
 // Create a client component that uses useSearchParams
 function ChallengesContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { theme } = useTheme();
 
     // Get data and actions from challenges store
-    const { 
-        challenges: allChallenges, 
-        categories, 
-        isLoading: loading, 
-        fetchChallenges 
+    const {
+        challenges: allChallenges,
+        categories,
+        isLoading: loading,
+        fetchChallenges
     } = useChallengesStore()
 
     // State
@@ -111,7 +91,7 @@ function ChallengesContent() {
         router.push(`/challenge?${params.toString()}`)
 
         // Fetch challenges with filters
-        fetchChallenges(1, 10, searchTerm, difficulty !== "all" ? difficulty : undefined, 
+        fetchChallenges(1, 10, searchTerm, difficulty !== "all" ? difficulty : undefined,
             category !== "all" ? category : undefined, sortBy)
     }
 
@@ -143,7 +123,7 @@ function ChallengesContent() {
     }
 
     return (
-        <div className="container max-w-7xl mx-auto px-4 py-8 ">
+        <div className={`container px-32 mx-auto px-4 py-8 ${theme === 'dark' ? 'text-white bg-gray-900' : 'text-black bg-white'}`}>
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
                 <div>
@@ -162,7 +142,7 @@ function ChallengesContent() {
                             placeholder="Search challenges..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 border-gray-300"
+                            className={`pl-10 border-gray-300/50 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-black'}`}
                         />
                     </div>
                 </form>
@@ -170,17 +150,29 @@ function ChallengesContent() {
 
             {/* Tabs */}
             <Tabs defaultValue="all" className="mb-6" onValueChange={setActiveTab}>
-                <TabsList className="bg-background border border-input">
-                    <TabsTrigger value="all" className="data-[state=active]:bg-muted">
+                <TabsList className={`border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                    <TabsTrigger
+                        value="all"
+                        className={`data-[state=active]:${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                    >
                         All Challenges
                     </TabsTrigger>
-                    <TabsTrigger value="solved" className="data-[state=active]:bg-muted">
+                    <TabsTrigger
+                        value="solved"
+                        className={`data-[state=active]:${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                    >
                         Solved
                     </TabsTrigger>
-                    <TabsTrigger value="attempted" className="data-[state=active]:bg-muted">
+                    <TabsTrigger
+                        value="attempted"
+                        className={`data-[state=active]:${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                    >
                         Attempted
                     </TabsTrigger>
-                    <TabsTrigger value="bookmarked" className="data-[state=active]:bg-muted">
+                    <TabsTrigger
+                        value="bookmarked"
+                        className={`data-[state=active]:${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                    >
                         Bookmarked
                     </TabsTrigger>
                 </TabsList>
@@ -188,30 +180,30 @@ function ChallengesContent() {
 
             <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-8 w-full">
                 {/* Filters Section */}
-                <div className="p-6 rounded-lg">
+                <div className={`p-6 rounded-lg h-fit ${theme === 'dark' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-900'}`}>
                     {/* Difficulty */}
                     <div className="mb-8">
                         <h3 className="text-lg font-semibold mb-3">Difficulty</h3>
                         <RadioGroup value={difficulty} onValueChange={setDifficulty} className="space-y-2">
                             <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="all" id="all-difficulties" />
-                                <Label htmlFor="all-difficulties">All Difficulties</Label>
+                                <RadioGroupItem value="all" id="all-difficulties" className={theme === 'dark' ? 'text-white bg-gray-800 border-gray-300' : ''} />
+                                <Label htmlFor="all-difficulties" className={theme === 'dark' ? 'text-gray-300' : ''}>All Difficulties</Label>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="EASY" id="easy" />
-                                <Label htmlFor="easy">Easy</Label>
+                                <RadioGroupItem value="EASY" id="easy" className={theme === 'dark' ? 'text-white bg-gray-800 border-gray-300' : ''} />
+                                <Label htmlFor="easy" className={theme === 'dark' ? 'text-gray-300' : ''}>Easy</Label>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="MEDIUM" id="medium" />
-                                <Label htmlFor="medium">Medium</Label>
+                                <RadioGroupItem value="MEDIUM" id="medium" className={theme === 'dark' ? 'text-white bg-gray-800 border-gray-300' : ''} />
+                                <Label htmlFor="medium" className={theme === 'dark' ? 'text-gray-300' : ''}>Medium</Label>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="HARD" id="hard" />
-                                <Label htmlFor="hard">Hard</Label>
+                                <RadioGroupItem value="HARD" id="hard" className={theme === 'dark' ? 'text-white bg-gray-800 border-gray-300' : ''} />
+                                <Label htmlFor="hard" className={theme === 'dark' ? 'text-gray-300' : ''}>Hard</Label>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="EXPERT" id="expert" />
-                                <Label htmlFor="expert">Expert</Label>
+                                <RadioGroupItem value="EXPERT" id="expert" className={theme === 'dark' ? 'text-white bg-gray-800 border-gray-300' : ''} />
+                                <Label htmlFor="expert" className={theme === 'dark' ? 'text-gray-300' : ''}>Expert</Label>
                             </div>
                         </RadioGroup>
                     </div>
@@ -221,13 +213,13 @@ function ChallengesContent() {
                         <h3 className="text-lg font-semibold mb-3">Category</h3>
                         <RadioGroup value={category} onValueChange={setCategory} className="space-y-2">
                             <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="all" id="all-categories" />
-                                <Label htmlFor="all-categories">All Categories</Label>
+                                <RadioGroupItem value="all" id="all-categories" className={theme === 'dark' ? 'text-white bg-gray-800 border-gray-300' : ''} />
+                                <Label htmlFor="all-categories" className={theme === 'dark' ? 'text-gray-300' : ''}>All Categories</Label>
                             </div>
                             {categories.map((cat) => (
                                 <div key={cat.id} className="flex items-center space-x-2">
-                                    <RadioGroupItem value={cat.name.toLowerCase()} id={cat.id} />
-                                    <Label htmlFor={cat.id}>{cat.name}</Label>
+                                    <RadioGroupItem value={cat.name.toLowerCase()} id={cat.id} className={theme === 'dark' ? 'text-white bg-gray-800 border-gray-300' : ''} />
+                                    <Label htmlFor={cat.id} className={theme === 'dark' ? 'text-gray-300' : ''}>{cat.name}</Label>
                                 </div>
                             ))}
                         </RadioGroup>
@@ -235,32 +227,34 @@ function ChallengesContent() {
 
                     {/* Sort By */}
                     <div>
-                        <h3 className="text-lg font-semibold mb-3">Sort By</h3>
+                        <h3 className={`text-lg font-semibold mb-3 ${theme === 'dark' ? 'text-gray-300' : ''}`}>Sort By</h3>
                         <Select value={sortBy} onValueChange={setSortBy}>
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger className={`w-full ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : ''}`}>
                                 <SelectValue placeholder="Select sort order" />
                             </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="newest">Newest First</SelectItem>
-                                <SelectItem value="oldest">Oldest First</SelectItem>
-                                <SelectItem value="most-liked">Most Liked</SelectItem>
-                                <SelectItem value="most-submissions">Most Submissions</SelectItem>
-                                <SelectItem value="highest-points">Highest Points</SelectItem>
+                            <SelectContent className={theme === 'dark' ? 'bg-gray-800 border-gray-700 text-white' : ''}>
+                                <SelectItem value="newest" className={theme === 'dark' ? 'hover:bg-gray-700' : ''}>Newest First</SelectItem>
+                                <SelectItem value="oldest" className={theme === 'dark' ? 'hover:bg-gray-700' : ''}>Oldest First</SelectItem>
+                                <SelectItem value="most-liked" className={theme === 'dark' ? 'hover:bg-gray-700' : ''}>Most Liked</SelectItem>
+                                <SelectItem value="most-submissions" className={theme === 'dark' ? 'hover:bg-gray-700' : ''}>Most Submissions</SelectItem>
+                                <SelectItem value="highest-points" className={theme === 'dark' ? 'hover:bg-gray-700' : ''}>Highest Points</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
 
                 {/* Challenges List */}
-                <div className="flex flex-col gap-4 p-6 rounded-lg">
+                <div className={`flex flex-col gap-4 p-6 rounded-lg ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
                     {loading ? (
                         <Loader />
                     ) : filteredChallenges.length === 0 ? (
                         <div className="text-center py-12">
-                            <p className="text-lg text-gray-500">No challenges found matching your filters.</p>
-                            <Button 
-                                variant="link" 
-                                className="mt-2 text-orange-600" 
+                            <p className={`text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                No challenges found matching your filters.
+                            </p>
+                            <Button
+                                variant="link"
+                                className={`mt-2 ${theme === 'dark' ? 'text-orange-400' : 'text-orange-600'}`}
                                 onClick={() => {
                                     setSearchTerm('');
                                     setDifficulty('all');
@@ -275,10 +269,10 @@ function ChallengesContent() {
                     ) : (
                         filteredChallenges.map((challenge) => (
                             <Link key={challenge.id} href={`/challenge/${challenge.id}`}>
-                                <div className="border border-gray-200 cursor-pointer rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                                <div className={`border ${theme === 'dark' ? 'border-gray-700 hover:shadow-lg' : 'border-gray-200 hover:shadow-md'} cursor-pointer rounded-lg overflow-hidden transition-shadow`}>
                                     <div className="p-6">
                                         <div className="flex justify-between items-start mb-4">
-                                            <h3 className="text-xl font-bold flex items-center">
+                                            <h3 className={`text-xl font-bold flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                                                 {challenge.title}
                                                 {/* {challenge.isFavorite && <span className="text-yellow-400 ml-2">★</span>} */}
                                             </h3>
@@ -290,26 +284,31 @@ function ChallengesContent() {
                                                         ? "Expert"
                                                         : challenge.difficulty.charAt(0) + challenge.difficulty.slice(1).toLowerCase()}
                                                 </span>
-                                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${theme === 'dark' ? 'bg-gray-700 text-gray-200' : 'bg-gray-200 text-gray-800'}`}>
                                                     {challenge.category.name}
                                                 </span>
-                                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${theme === 'dark' ? 'bg-orange-900 text-orange-200' : 'bg-orange-100 text-orange-800'}`}>
                                                     {challenge.points} Points
                                                 </span>
                                             </div>
                                         </div>
 
-                                        <p className="text-gray-600 mb-4">{challenge.description}</p>
+                                        <p className={`mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                                            {challenge.description}
+                                        </p>
 
                                         <div className="flex flex-wrap gap-2 mb-4">
                                             {challenge.languages.map((lang, index) => (
-                                                <span key={index} className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                <span
+                                                    key={index}
+                                                    className={`px-3 py-1 rounded-full text-xs font-medium ${theme === 'dark' ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'}`}
+                                                >
                                                     {lang}
                                                 </span>
                                             ))}
                                         </div>
 
-                                        <div className="flex items-center text-sm text-gray-500">
+                                        <div className={`flex items-center text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                                             <div className="flex items-center mr-4">
                                                 <span>👍 {challenge.likes}</span>
                                             </div>

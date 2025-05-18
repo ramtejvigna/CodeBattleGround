@@ -30,15 +30,16 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { useProfileStore } from '@/lib/store/profileStore';
 import toast from 'react-hot-toast';
 import StatisticsDashboard from '@/components/statistics-dashboard';
+import { useParams } from 'next/navigation';
+import { useTheme } from '@/context/ThemeContext';
 
-
-export default function UserProfilePage({ params }: { params: { username: string } }) {
+export default function UserProfilePage() {
     const { fetchUserProfileByUsername } = useProfileStore();
-    const { username } = params;
+    const { username } = useParams();
 
     useEffect(() => {
         if (username) {
-            fetchUserProfileByUsername(username);
+            fetchUserProfileByUsername(username as string);
         }
     }, [username, fetchUserProfileByUsername]);
 
@@ -83,6 +84,8 @@ const formatStatus = (status: string) => {
 
 const ProfileContent = () => {
     const [activeTab, setActiveTab] = useState('overview');
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
 
     // Get all profile data from Zustand store
     const {
@@ -205,10 +208,19 @@ const ProfileContent = () => {
         discussions: 0
     };
 
+
+    // Theme-aware styles
+    const bgColor = isDark ? 'bg-gray-900' : 'bg-white';
+    const cardBg = isDark ? 'bg-gray-800' : 'bg-gray-50';
+    const borderColor = isDark ? 'border-gray-700' : 'border-gray-200';
+    const textColor = isDark ? 'text-gray-200' : 'text-gray-800';
+    const secondaryText = isDark ? 'text-gray-400' : 'text-gray-500';
+    const hoverBg = isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-100';
+
     return (
-        <div className="bg-gray-900 min-h-screen text-gray-200">
+        <div className={`min-h-screen ${bgColor} ${textColor}`}>
             {/* Profile header */}
-            <div className="bg-gray-800/50 border-b border-gray-700">
+            <div className={`${cardBg} border-b ${borderColor}`}>
                 <div className="max-w-7xl mx-auto px-6 py-8">
                     <div className="flex flex-col md:flex-row md:items-center gap-6">
                         {/* Avatar and name */}
@@ -228,9 +240,9 @@ const ProfileContent = () => {
                             <div>
                                 <h1 className="text-2xl font-bold">
                                     {userData?.name}
-                                    <span className={`ml-2 opacity-75 font-normal text-xl`}>({userData?.username})</span>
+                                    <span className={`ml-2 opacity-75 font-normal text-xl ${secondaryText}`}>({userData?.username})</span>
                                 </h1>
-                                <div className="flex items-center text-gray-400 text-sm mt-1">
+                                <div className={`flex items-center ${secondaryText} text-sm mt-1`}>
                                     <Calendar className="w-4 h-4 mr-1" />
                                     <span>Joined {userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString() : ''}</span>
                                 </div>
@@ -239,43 +251,26 @@ const ProfileContent = () => {
 
                         {/* Stats */}
                         <div className="flex flex-wrap gap-4 md:gap-8 md:ml-auto">
-                            <div className="bg-gray-800 rounded-lg p-3 min-w-[100px] border border-gray-700">
-                                <div className="text-sm text-gray-400">Global Rank</div>
-                                <div className="flex items-center mt-1">
-                                    <Trophy className="w-4 h-4 text-yellow-500 mr-2" />
-                                    <span className="text-xl font-bold">#{userData?.userProfile?.rank || '-'}</span>
+                            {[
+                                { icon: <Trophy className="w-4 h-4 text-yellow-500" />, label: "Global Rank", value: `#${userData.userProfile?.rank || '-'}` },
+                                { icon: <Star className="w-4 h-4 text-blue-500" />, label: "Level", value: userData.userProfile?.level || 0 },
+                                { icon: <CheckCircle className="w-4 h-4 text-green-500" />, label: "Problems", value: userData.userProfile?.solved || 0 },
+                                { icon: <Coffee className="w-4 h-4 text-orange-500" />, label: "Streak", value: `${userData.userProfile?.streakDays || 0} days` }
+                            ].map((stat, i) => (
+                                <div key={i} className={`${cardBg} rounded-lg p-3 min-w-[100px] border ${borderColor}`}>
+                                    <div className={`text-sm ${secondaryText}`}>{stat.label}</div>
+                                    <div className="flex items-center mt-1">
+                                        {stat.icon}
+                                        <span className="text-xl font-bold ml-2">{stat.value}</span>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div className="bg-gray-800 rounded-lg p-3 min-w-[100px] border border-gray-700">
-                                <div className="text-sm text-gray-400">Level</div>
-                                <div className="flex items-center mt-1">
-                                    <Star className="w-4 h-4 text-blue-500 mr-2" />
-                                    <span className="text-xl font-bold">{userData?.userProfile?.level || 0}</span>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-800 rounded-lg p-3 min-w-[100px] border border-gray-700">
-                                <div className="text-sm text-gray-400">Problems</div>
-                                <div className="flex items-center mt-1">
-                                    <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                                    <span className="text-xl font-bold">{userData?.userProfile?.solved || 0}</span>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-800 rounded-lg p-3 min-w-[100px] border border-gray-700">
-                                <div className="text-sm text-gray-400">Streak</div>
-                                <div className="flex items-center mt-1">
-                                    <Coffee className="w-4 h-4 text-orange-500 mr-2" />
-                                    <span className="text-xl font-bold">{userData?.userProfile?.streakDays || 0} days</span>
-                                </div>
-                            </div>
+                            ))}
                         </div>
 
                         {/* Actions */}
                         <div className="flex md:flex-col gap-2 ml-auto mt-2 md:mt-0">
                             <button
-                                className="p-2 bg-gray-800 hover:bg-gray-750 border border-gray-700 rounded-lg transition-colors"
+                                className={`p-2 ${cardBg} ${hoverBg} border ${borderColor} rounded-lg transition-colors`}
                                 onClick={() => window.location.href = '/settings'}
                             >
                                 <Settings className="w-5 h-5" />
@@ -286,54 +281,40 @@ const ProfileContent = () => {
             </div>
 
             {/* Tab navigation */}
-            <div className="border-b border-gray-700 bg-gray-800/30">
+            <div className={`border-b ${borderColor} ${isDark ? 'bg-gray-800/30' : 'bg-gray-50'}`}>
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="flex overflow-x-auto hide-scrollbar">
-                        <button
-                            onClick={() => setActiveTab('overview')}
-                            className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${activeTab === 'overview'
-                                ? 'border-b-2 border-orange-500 text-orange-500'
-                                : 'text-gray-400 hover:text-gray-300'
+                        {[{
+                            label: 'Overview',
+                            value: 'overview',
+                        },
+                        {
+                            label: 'Submissions',
+                            value: 'submissions',
+                        },
+                        {
+                            label: 'Badges',
+                            value: 'badges',
+                        },
+                        {
+                            label: 'Contests',
+                            value: 'contests',
+                        },
+                        {
+                            label: 'Statistics',
+                            value: 'statistics',
+                        }].map((tab, i) => (
+                            <button
+                                key={i}
+                                onClick={() => setActiveTab(tab.value)}
+                                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${activeTab === tab.value
+                                    ? 'border-b-2 border-orange-500 text-orange-500'
+                                    : 'text-gray-400 hover:text-gray-300'
                                 }`}
-                        >
-                            Overview
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('submissions')}
-                            className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${activeTab === 'submissions'
-                                ? 'border-b-2 border-orange-500 text-orange-500'
-                                : 'text-gray-400 hover:text-gray-300'
-                                }`}
-                        >
-                            Submissions
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('badges')}
-                            className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${activeTab === 'badges'
-                                ? 'border-b-2 border-orange-500 text-orange-500'
-                                : 'text-gray-400 hover:text-gray-300'
-                                }`}
-                        >
-                            Badges
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('contests')}
-                            className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${activeTab === 'contests'
-                                ? 'border-b-2 border-orange-500 text-orange-500'
-                                : 'text-gray-400 hover:text-gray-300'
-                                }`}
-                        >
-                            Contests
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('statistics')}
-                            className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${activeTab === 'statistics'
-                                ? 'border-b-2 border-orange-500 text-orange-500'
-                                : 'text-gray-400 hover:text-gray-300'
-                                }`}
-                        >
-                            Statistics
-                        </button>
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>
@@ -343,17 +324,17 @@ const ProfileContent = () => {
                 {activeTab === 'overview' && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-2 space-y-8">
-                            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                            <div className={`rounded-xl p-6 border ${borderColor} ${cardBg}`}>
                                 <h2 className="text-lg font-bold mb-4">About</h2>
-                                <p className="text-gray-300">{userData?.userProfile?.bio || 'No bio available'}</p>
+                                <p className={`${secondaryText}`}>{userData?.userProfile?.bio || 'No bio available'}</p>
 
                                 <div className="mt-6">
-                                    <h3 className="text-sm font-semibold text-gray-400 mb-3">Preferred Languages</h3>
+                                    <h3 className={`text-sm font-semibold ${secondaryText} mb-3`}>Preferred Languages</h3>
                                     {hasLanguages ? (
                                         <div className="space-y-3">
                                             {allLanguages.map((lang, i) => (
                                                 <div key={lang.id || i}>
-                                                    <div className="flex justify-between text-sm mb-1 bg-primary/70 rounded-lg p-2 w-fit">
+                                                    <div className={`flex justify-between text-sm mb-1 rounded-lg p-2 w-fit ${isDark ? 'bg-gray-700' : 'bg-orange-50'}`}>
                                                         <span className={lang.isPreferred ? 'font-medium' : ''}>
                                                             {lang.name}
                                                             {lang.isPreferred && ' (Preferred)'}
@@ -363,7 +344,7 @@ const ProfileContent = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="bg-gray-750 rounded-lg p-4 flex flex-col items-center text-center">
+                                        <div className={`rounded-lg p-4 flex flex-col items-center text-center ${isDark ? 'bg-gray-750' : 'bg-gray-100'}`}>
                                             <Code2 className="w-8 h-8 text-gray-500 mb-2" />
                                             <p className="text-gray-400">No programming languages recorded yet</p>
                                             <p className="text-xs text-gray-500 mt-2">
@@ -374,7 +355,7 @@ const ProfileContent = () => {
                                 </div>
                             </div>
 
-                            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                            <div className={`rounded-xl p-6 border ${borderColor} ${cardBg}`}>
                                 <div className="flex justify-between items-center mb-4">
                                     <h2 className="text-lg font-bold">Recent Activity</h2>
                                     <button
@@ -392,7 +373,7 @@ const ProfileContent = () => {
                                 ) : recentActivity.length > 0 ? (
                                     <div className="space-y-4">
                                         {recentActivity.map((activity, i) => (
-                                            <div key={i} className="flex items-start p-3 rounded-lg hover:bg-gray-750 transition-colors">
+                                            <div key={i} className={`flex items-start p-3 rounded-lg ${hoverBg} transition-colors`}>
                                                 <div className={`p-2 rounded-lg mr-3 ${activity.type === 'challenge' ? 'bg-blue-500/20 text-blue-400' :
                                                     activity.type === 'contest' ? 'bg-purple-500/20 text-purple-400' :
                                                         'bg-green-500/20 text-green-400'
@@ -403,14 +384,18 @@ const ProfileContent = () => {
                                                 </div>
 
                                                 <div className="flex-grow">
-                                                    <div className="flex justify-between">
+                                                    <div className="flex justify-between items-center">
                                                         <div>
                                                             <h3 className="font-medium">{activity.name}</h3>
-                                                            <div className="text-sm text-gray-400 mt-1">{activity.result}</div>
+                                                            <div className={`text-sm ${secondaryText} mt-1`}>
+                                                                {activity.result}
+                                                            </div>
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="text-orange-500 font-medium">+{activity.points}</div>
-                                                            <div className="text-sm text-gray-400 mt-1">{activity.time}</div>
+                                                            <div className={`text-sm ${secondaryText} mt-1`}>
+                                                                {activity.time}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -418,12 +403,9 @@ const ProfileContent = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="bg-gray-750 rounded-lg p-6 flex flex-col items-center text-center">
+                                    <div className={`rounded-lg p-6 flex flex-col items-center text-center ${isDark ? 'bg-gray-750' : 'bg-gray-100'}`}>
                                         <Activity className="w-12 h-12 text-gray-500 mb-3" />
-                                        <h3 className="text-lg font-medium text-gray-300">No Recent Activity</h3>
-                                        <p className="text-gray-400 mt-2 max-w-md">
-                                            Your recent coding activities will appear here once you start solving challenges or participating in contests.
-                                        </p>
+                                        <h3 className={`text-lg font-medium ${textColor}`}>No Recent Activity</h3>
                                         <button
                                             className="mt-4 px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white text-sm font-medium transition-colors"
                                             onClick={() => window.location.href = '/challenges'}
@@ -436,60 +418,40 @@ const ProfileContent = () => {
                         </div>
 
                         <div className="space-y-8">
-                            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                            <div className={`rounded-xl p-6 border ${borderColor} ${cardBg}`}>
                                 <h2 className="text-lg font-bold mb-4">Points Summary</h2>
                                 <div className="text-center">
                                     <div className="text-4xl font-bold text-orange-500">{userData?.userProfile?.points?.toLocaleString() ?? 0}</div>
-                                    <div className="text-gray-400 mt-1">Total Points</div>
+                                    <div className={`{secondaryText} mt-1`}>Total Points</div>
                                 </div>
 
-                                <div className="mt-6 grid grid-cols-2 gap-4">
-                                    <div className="bg-gray-750 rounded-lg p-3 text-center">
-                                        <div className="flex justify-center mb-2">
-                                            <Code className="text-blue-400" />
+                                <div className="mt-6 grid grid-cols-2 gap-3">
+                                    {[
+                                        { icon: <Code className="text-blue-400" />, label: "Challenges", value: userData.pointsBreakdown?.challenges || 0 },
+                                        { icon: <Trophy className="text-purple-400" />, label: "Contests", value: userData.pointsBreakdown?.contests || 0 },
+                                        { icon: <Award className="text-green-400" />, label: "Badges", value: userData.pointsBreakdown?.badges || 0 },
+                                        { icon: <MessageSquare className="text-yellow-400" />, label: "Discussions", value: userData.pointsBreakdown?.discussions || 0 }
+                                    ].map((item, i) => (
+                                        <div key={i} className={`rounded-lg p-3 text-center ${isDark ? 'bg-gray-750' : 'bg-gray-100'}`}>
+                                            <div className="flex justify-center mb-2">{item.icon}</div>
+                                            <div className="font-bold">{item.value.toLocaleString()}</div>
+                                            <div className={`text-xs ${secondaryText} mt-1`}>From {item.label}</div>
                                         </div>
-                                        <div className="font-bold">{pointsBreakdown.challenges.toLocaleString()}</div>
-                                        <div className="text-xs text-gray-400 mt-1">From Challenges</div>
-                                    </div>
-
-                                    <div className="bg-gray-750 rounded-lg p-3 text-center">
-                                        <div className="flex justify-center mb-2">
-                                            <Trophy className="text-purple-400" />
-                                        </div>
-                                        <div className="font-bold">{pointsBreakdown.contests.toLocaleString()}</div>
-                                        <div className="text-xs text-gray-400 mt-1">From Contests</div>
-                                    </div>
-
-                                    <div className="bg-gray-750 rounded-lg p-3 text-center">
-                                        <div className="flex justify-center mb-2">
-                                            <Award className="text-green-400" />
-                                        </div>
-                                        <div className="font-bold">{pointsBreakdown.badges.toLocaleString()}</div>
-                                        <div className="text-xs text-gray-400 mt-1">From Badges</div>
-                                    </div>
-
-                                    <div className="bg-gray-750 rounded-lg p-3 text-center">
-                                        <div className="flex justify-center mb-2">
-                                            <MessageSquare className="text-yellow-400" />
-                                        </div>
-                                        <div className="font-bold">{pointsBreakdown.discussions.toLocaleString()}</div>
-                                        <div className="text-xs text-gray-400 mt-1">From Discussions</div>
-                                    </div>
+                                    ))}
                                 </div>
 
                                 {/* Progress to next level */}
                                 <div className="mt-6">
                                     <div className="flex justify-between text-sm mb-1">
-                                        <span>Progress to Level {(userData?.userProfile?.level || 0) + 1}</span>
-                                        <span className="text-gray-400">
-                                            {userData?.userProfile?.points || 0}/
-                                            {((userData?.userProfile?.level || 0) + 1) * 1000} points
+                                        <span>Progress to Level {(userData.userProfile?.level || 0) + 1}</span>
+                                        <span className={secondaryText}>
+                                            {userData.userProfile?.points || 0}/{(userData.userProfile?.level || 0 + 1) * 1000} points
                                         </span>
                                     </div>
-                                    <div className="w-full bg-gray-700 rounded-full h-2">
+                                    <div className={`w-full rounded-full h-2 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                         <div
                                             className="bg-gradient-to-r from-orange-500 to-red-600 h-2 rounded-full"
-                                            style={{ width: `${Math.min(100, ((userData?.userProfile?.points || 0) % 1000) / 10)}%` }}
+                                            style={{ width: `${Math.min(100, ((userData.userProfile?.points || 0) % 1000) / 10)}%` }}
                                         ></div>
                                     </div>
                                 </div>
@@ -554,14 +516,16 @@ const ProfileContent = () => {
                 )}
 
                 {activeTab === 'badges' && (
-                    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <div className={`rounded-xl p-6 border ${borderColor} ${cardBg}`}>
                         <h2 className="text-xl font-bold mb-6">Badges & Achievements</h2>
 
                         {userData?.userProfile?.badges && userData.userProfile.badges.length > 0 ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                                 {userData.userProfile.badges.map((badge, i) => (
-                                    <div key={i} className="bg-gray-750 rounded-lg p-4 flex flex-col items-center text-center group hover:border hover:border-orange-500 transition-all cursor-pointer">
-                                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500/20 to-red-600/20 flex items-center justify-center mb-3 text-orange-500 group-hover:scale-110 transition-transform">
+                                    <div key={i} className={`rounded-lg p-3 flex flex-col items-center text-center group ${hoverBg} transition-colors cursor-pointer`}>
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 text-orange-500 group-hover:scale-110 transition-transform ${
+                                                    isDark ? 'bg-orange-500/20' : 'bg-orange-100'
+                                                }`}>
                                             {badge.iconType === 'calendar' ? <Calendar className="w-5 h-5" /> :
                                                 badge.iconType === 'code' ? <Code className="w-5 h-5" /> :
                                                     badge.iconType === 'zap' ? <Zap className="w-5 h-5" /> :
@@ -575,7 +539,7 @@ const ProfileContent = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="py-12 flex flex-col items-center text-center">
+                            <div className={`rounded-lg p-4 flex flex-col items-center text-center ${isDark ? 'bg-gray-750' : 'bg-gray-100'}`}>
                                 <div className="w-20 h-20 rounded-full bg-gray-750 flex items-center justify-center mb-4">
                                     <Award className="w-10 h-10 text-gray-500" />
                                 </div>
@@ -595,7 +559,7 @@ const ProfileContent = () => {
                 )}
 
                 {activeTab === 'submissions' && (
-                    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <div className={`rounded-xl p-6 border ${borderColor} ${cardBg}`}>
                         <h2 className="text-xl font-bold mb-6">Submissions History</h2>
 
                         {submissionsLoading && submissions.length === 0 ? (
@@ -607,7 +571,7 @@ const ProfileContent = () => {
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
                                         <thead>
-                                            <tr className="text-left text-gray-400 text-sm border-b border-gray-700">
+                                            <tr className={`text-left text-sm border-b ${borderColor} ${secondaryText}`}>
                                                 <th className="pb-3 pl-2">Problem</th>
                                                 <th className="pb-3">Status</th>
                                                 <th className="pb-3">Language</th>
@@ -620,12 +584,12 @@ const ProfileContent = () => {
                                             {submissions.map((submission, i) => (
                                                 <tr
                                                     key={i}
-                                                    className="border-b border-gray-700 hover:bg-gray-750 cursor-pointer transition-colors"
+                                                    className={`border-b ${borderColor} ${hoverBg} cursor-pointer transition-colors`}
                                                     onClick={() => window.location.href = `/submissions/${submission.id}`}
                                                 >
                                                     <td className="py-3 pl-2">
                                                         <div className="font-medium">{submission.challenge?.title}</div>
-                                                        <div className="text-sm text-gray-400 capitalize font-semibold">{submission.challenge?.difficulty ? String(submission.challenge.difficulty) : 'N/A'}</div>
+                                                        <div className={`text-sm ${secondaryText} capitalize font-semibold`}>{submission.challenge?.difficulty ? String(submission.challenge.difficulty) : 'N/A'}</div>
                                                     </td>
                                                     <td className="py-3">
                                                         <div className="flex items-center">
@@ -636,7 +600,7 @@ const ProfileContent = () => {
                                                     <td className="py-3">{submission?.language ? String(submission.language.name) : 'N/A'}</td>
                                                     <td className="py-3">{submission.runtime}ms</td>
                                                     <td className="py-3">{submission?.memory} KB</td>
-                                                    <td className="py-3 text-right pr-2 text-gray-400">
+                                                    <td className={`py-3 text-right pr-2 ${secondaryText}`}>
                                                         {formatDate(submission.createdAt)}
                                                     </td>
                                                 </tr>
@@ -654,7 +618,9 @@ const ProfileContent = () => {
                                 {hasMoreSubmissions && !submissionsLoading && (
                                     <div className="mt-6 text-center">
                                         <button
-                                            className="px-5 py-2 bg-gray-750 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm font-medium transition-colors"
+                                            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                                isDark ? 'bg-gray-750 border border-gray-700 hover:bg-gray-700' : 'bg-gray-100 border border-gray-200 hover:bg-gray-200'
+                                            }`}
                                             onClick={loadMoreSubmissions}
                                         >
                                             Load More Submissions
@@ -664,11 +630,9 @@ const ProfileContent = () => {
                             </div>
                         ) : (
                             <div className="py-12 flex flex-col items-center text-center">
-                                <div className="w-20 h-20 rounded-full bg-gray-750 flex items-center justify-center mb-4">
-                                    <Code2 className="w-10 h-10 text-gray-500" />
-                                </div>
-                                <h3 className="text-xl font-medium text-gray-300">No Submissions Yet</h3>
-                                <p className="text-gray-400 mt-3 max-w-md">
+                                <Code2 className="w-12 h-12 text-gray-500 mb-4" />
+                                <h3 className={`text-xl font-medium ${textColor}`}>No Submissions Yet</h3>
+                                <p className={`${secondaryText} mt-3 max-w-md`}>
                                     You haven't submitted any solutions yet. Start solving coding challenges to build your submission history.
                                 </p>
                                 <button
@@ -683,15 +647,13 @@ const ProfileContent = () => {
                 )}
 
                 {activeTab === 'contests' && (
-                    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <div className={`rounded-xl p-6 border ${borderColor} ${cardBg}`}>
                         <h2 className="text-xl font-bold mb-6">Contest History</h2>
 
                         <div className="py-12 flex flex-col items-center text-center">
-                            <div className="w-20 h-20 rounded-full bg-gray-750 flex items-center justify-center mb-4">
-                                <Trophy className="w-10 h-10 text-gray-500" />
-                            </div>
-                            <h3 className="text-xl font-medium text-gray-300">No Contest Participation Yet</h3>
-                            <p className="text-gray-400 mt-3 max-w-md">
+                            <Trophy className="w-12 h-12 text-gray-500 mb-4" />
+                            <h3 className={`text-xl font-medium ${textColor}`}>No Contest Participation Yet</h3>
+                            <p className={`${secondaryText} mt-3 max-w-md`}>
                                 You haven't participated in any contests yet. Join upcoming contests to compete with other developers and earn ranking points.
                             </p>
                             <button

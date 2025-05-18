@@ -236,15 +236,15 @@ const ChallengePage = () => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "EASY":
-        return "bg-green-500"
+        return "bg-green-500 text-white"
       case "MEDIUM":
-        return "bg-yellow-500"
+        return "bg-yellow-500 text-white"
       case "HARD":
-        return "bg-orange-500"
+        return "bg-orange-500 text-white"
       case "EXPERT":
-        return "bg-red-500"
+        return "bg-red-500 text-white"
       default:
-        return "bg-gray-500"
+        return "bg-gray-500 text-white"
     }
   }
 
@@ -306,11 +306,15 @@ int main() {
 
   if (!challenge) {
     return (
-      <div className={`min-h-screen bg-background text-foreground`}>
+      <div className={`min-h-screen ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}>
         <div className="container mx-auto px-4 py-16 text-center">
           <XCircle size={64} className="mx-auto mb-4 text-red-500" />
-          <h1 className="text-3xl font-bold mb-4">Challenge Not Found</h1>
-          <p className="mb-8">The challenge you're looking for doesn't exist or has been removed.</p>
+          <h1 className={`text-3xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
+            Challenge Not Found
+          </h1>
+          <p className={`mb-8 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+            The challenge you're looking for doesn't exist or has been removed.
+          </p>
           <Link
             href="/challenges"
             className="inline-block bg-gradient-to-tr from-[#F14A00] to-[#C62300] text-white py-2 px-6 rounded-lg hover:opacity-90 transition-opacity"
@@ -323,7 +327,7 @@ int main() {
   }
 
   return (
-    <div className={`min-h-screen ${theme === "dark" ? "bg-gray-900 text-gray-300" : "bg-white text-gray-800"}`}>
+    <div className={`min-h-screen ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}>
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Challenge Details */}
@@ -335,17 +339,21 @@ int main() {
             >
               <div className="p-5">
                 <div className="flex justify-between items-start mb-4">
-                  <h1 className="text-2xl font-bold">{challenge.title}</h1>
+                  <h1 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
+                    {challenge.title}
+                  </h1>
                 </div>
 
                 <div className="flex items-center justify-between gap-2 mb-4">
                   <div className="flex items-center gap-2">
-                    <User size={16} className="text-gray-500" />
-                    <span className="text-sm text-gray-500">Created by {challenge.creator.username}</span>
+                    <User size={16} className={theme === "dark" ? "text-gray-400" : "text-gray-500"} />
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                      Created by {challenge.creator.username}
+                    </span>
                   </div>
                   
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getDifficultyColor(challenge.difficulty)}`}
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyColor(challenge.difficulty)}`}
                   >
                     {challenge.difficulty.charAt(0) + challenge.difficulty.slice(1).toLowerCase()}
                   </span>
@@ -354,35 +362,49 @@ int main() {
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="flex items-center gap-2">
                     <Award size={16} className="text-yellow-500" />
-                    <span className="text-sm">{challenge.points} Points</span>
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                      {challenge.points} Points
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <ThumbsUp size={16} className="text-blue-500" />
-                    <span className="text-sm">{challenge.likes} Likes</span>
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                      {challenge.likes} Likes
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock size={16} className="text-orange-500" />
-                    <span className="text-sm">{challenge.timeLimit}s Time Limit</span>
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                      {challenge.timeLimit}s Time Limit
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Cpu size={16} className="text-purple-500" />
-                    <span className="text-sm">{challenge.memoryLimit}MB Memory</span>
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                      {challenge.memoryLimit}MB Memory
+                    </span>
                   </div>
                 </div>
 
                 <div className={`p-4 rounded-lg mb-6 ${theme === "dark" ? "bg-gray-700" : "bg-gray-100"}`}>
-                  <h3 className="font-semibold mb-2">Description</h3>
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <h3 className={`font-semibold mb-2 ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
+                    Description
+                  </h3>
+                  <div className={`prose prose-sm max-w-none ${theme === "dark" ? "prose-invert text-gray-300" : "text-gray-700"}`}>
                     <div dangerouslySetInnerHTML={{ __html: challenge.description }} />
                   </div>
                 </div>
 
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold">Test Cases</h3>
+                    <h3 className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
+                      Test Cases
+                    </h3>
                     <button
                       onClick={() => setShowTestCases(!showTestCases)}
-                      className="text-sm flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      className={`text-sm flex items-center gap-1 ${
+                        theme === "dark" ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"
+                      }`}
                     >
                       {showTestCases ? (
                         <>
@@ -399,36 +421,42 @@ int main() {
                   </div>
 
                   {showTestCases && (
-                    <div className={`space-y-3 ${theme === "dark" ? "text-gray-300" : "text-gray-800"}`}>
+                    <div className="space-y-3">
                       {challenge.testCases
                         .filter((tc) => !tc.isHidden)
                         .map((testCase, index) => (
                           <div
                             key={index}
-                            className={`p-3 rounded-lg text-sm ${theme === "dark" ? "bg-gray-700" : "bg-gray-100"}`}
+                            className={`p-3 rounded-lg text-sm ${
+                              theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-800"
+                            }`}
                           >
                             <div className="mb-2">
-                              <span className="font-medium">Input:</span>
+                              <span className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
+                                Input:
+                              </span>
                               <pre
                                 className={`mt-1 p-2 rounded ${
-                                  theme === "dark" ? "bg-gray-800" : "bg-white"
+                                  theme === "dark" ? "bg-gray-800 text-gray-300" : "bg-white text-gray-800"
                                 } overflow-x-auto`}
                               >
                                 {testCase.input}
                               </pre>
                             </div>
                             <div>
-                              <span className="font-medium">Expected Output:</span>
+                              <span className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
+                                Expected Output:
+                              </span>
                               <pre
                                 className={`mt-1 p-2 rounded ${
-                                  theme === "dark" ? "bg-gray-800" : "bg-white"
+                                  theme === "dark" ? "bg-gray-800 text-gray-300" : "bg-white text-gray-800"
                                 } overflow-x-auto`}
                               >
                                 {testCase.output}
                               </pre>
                             </div>
                             {testCase.explanation && (
-                              <div className="mt-2 text-gray-500">
+                              <div className={`mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
                                 <span className="font-medium">Explanation:</span>
                                 <p className="mt-1">{testCase.explanation}</p>
                               </div>
@@ -461,7 +489,7 @@ int main() {
                 theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
               } shadow-sm overflow-hidden mb-6`}
             >
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <div className={`p-4 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"} flex justify-between items-center`}>
                 <div className="flex items-center gap-4">
                   <select
                     value={selectedLanguage}
@@ -510,7 +538,7 @@ int main() {
                   value={code}
                   onChange={setCode}
                   language={selectedLanguage.toLowerCase()}
-                  theme={theme === "dark" ? "vs-dark" : "vs"}
+                  theme={theme === "dark" ? "vs-dark" : "light"}
                 />
               </div>
             </div>
@@ -522,8 +550,8 @@ int main() {
                   theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
                 } shadow-sm overflow-hidden mb-6`}
               >
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="font-semibold">Test Results</h3>
+                <div className={`p-4 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
+                  <h3 className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Test Results</h3>
                 </div>
 
                 <div className="p-4">
@@ -531,11 +559,15 @@ int main() {
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                         <Clock size={16} className="text-blue-500" />
-                        <span className="text-sm">Runtime: {runtime}ms</span>
+                        <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                          Runtime: {runtime}ms
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Cpu size={16} className="text-purple-500" />
-                        <span className="text-sm">Memory: {memory}KB</span>
+                        <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                          Memory: {memory}KB
+                        </span>
                       </div>
                     </div>
 
@@ -543,8 +575,12 @@ int main() {
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
                           testResults.every((r) => r.passed)
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                            ? theme === "dark"
+                              ? "bg-green-900 text-green-300"
+                              : "bg-green-100 text-green-800"
+                            : theme === "dark"
+                              ? "bg-red-900 text-red-300"
+                              : "bg-red-100 text-red-800"
                         }`}
                       >
                         {testResults.every((r) => r.passed) ? "All Tests Passed" : "Some Tests Failed"}
@@ -567,7 +603,9 @@ int main() {
                         }`}
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium">Test Case #{index + 1}</span>
+                          <span className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
+                            Test Case #{index + 1}
+                          </span>
                           {result.passed ? (
                             <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
                               <CheckCircle size={16} />
@@ -583,10 +621,12 @@ int main() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
-                            <div className="font-medium mb-1">Input:</div>
+                            <div className={`font-medium mb-1 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                              Input:
+                            </div>
                             <pre
-                              className={`p-2 rounded ${
-                                theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+                              className={`mt-1 p-2 rounded ${
+                                theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-800"
                               } overflow-x-auto`}
                             >
                               {result.input}
@@ -594,10 +634,12 @@ int main() {
                           </div>
 
                           <div>
-                            <div className="font-medium mb-1">Expected Output:</div>
+                            <div className={`font-medium mb-1 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                              Expected Output:
+                            </div>
                             <pre
-                              className={`p-2 rounded ${
-                                theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+                              className={`mt-1 p-2 rounded ${
+                                theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-800"
                               } overflow-x-auto`}
                             >
                               {result.expectedOutput}
@@ -605,10 +647,14 @@ int main() {
 
                             {!result.passed && (
                               <div className="mt-2">
-                                <div className="font-medium mb-1 text-red-600 dark:text-red-400">Your Output:</div>
+                                <div className={`font-medium mb-1 ${
+                                  theme === "dark" ? "text-red-400" : "text-red-600"
+                                }`}>
+                                  Your Output:
+                                </div>
                                 <pre
                                   className={`p-2 rounded ${
-                                    theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+                                    theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-800"
                                   } overflow-x-auto`}
                                 >
                                   {result.actualOutput}
@@ -627,7 +673,7 @@ int main() {
             {/* Submission Status */}
             {submissionStatus && (
               <div
-                className={`rounded-lg border ${
+                className={`rounded-lg border p-4 mb-6 ${
                   submissionStatus === "ACCEPTED"
                     ? theme === "dark"
                       ? "bg-green-900/20 border-green-700"
@@ -635,23 +681,39 @@ int main() {
                     : theme === "dark"
                       ? "bg-red-900/20 border-red-700"
                       : "bg-red-50 border-red-200"
-                } p-4 mb-6`}
+                }`}
               >
                 <div className="flex items-center gap-2">
                   {submissionStatus === "ACCEPTED" ? (
                     <>
                       <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
                       <div>
-                        <h3 className="font-semibold text-green-600 dark:text-green-400">Solution Accepted!</h3>
-                        <p className="text-sm">Congratulations! Your solution passed all test cases.</p>
+                        <h3 className={`font-semibold ${
+                          theme === "dark" ? "text-green-400" : "text-green-600"
+                        }`}>
+                          Solution Accepted!
+                        </h3>
+                        <p className={`text-sm ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}>
+                          Congratulations! Your solution passed all test cases.
+                        </p>
                       </div>
                     </>
                   ) : (
                     <>
                       <XCircle size={20} className="text-red-600 dark:text-red-400" />
                       <div>
-                        <h3 className="font-semibold text-red-600 dark:text-red-400">Solution Failed</h3>
-                        <p className="text-sm">Your solution did not pass all test cases. Please try again.</p>
+                        <h3 className={`font-semibold ${
+                          theme === "dark" ? "text-red-400" : "text-red-600"
+                        }`}>
+                          Solution Failed
+                        </h3>
+                        <p className={`text-sm ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}>
+                          Your solution did not pass all test cases. Please try again.
+                        </p>
                       </div>
                     </>
                   )}

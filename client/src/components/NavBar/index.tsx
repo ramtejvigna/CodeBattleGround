@@ -134,7 +134,7 @@ const NavBar = () => {
                         )}
                     </ul>
 
-                    {gridModel && <GridModel />}
+                    {gridModel && <GridModel onClose={() => setGridModel(false)} />}
                 </div>
             </nav>
         </div>

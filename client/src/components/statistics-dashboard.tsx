@@ -39,11 +39,11 @@ interface Challenge {
 interface Submission {
   id?: string;
   status: string;
-  runtime?: number;
+  runtime?: string;
   createdAt: string;
   challenge?: Challenge;
   language?: SubmissionLanguage;
-  memory?: number;
+  memory?: string;
 }
 
 interface ChartTooltipProps {
@@ -108,7 +108,7 @@ const processSubmissionsData = (submissions: Submission[]): ProcessedStats => {
   
   // Calculate average runtime
   const avgRuntime = Math.round(
-    submissions.reduce((sum: number, sub) => sum + (sub.runtime || 0), 0) / submissions.length
+    submissions.reduce((sum: number, sub) => sum + Number(sub.runtime || 0), 0) / submissions.length
   )
 
   // Status distribution
