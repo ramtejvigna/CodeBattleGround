@@ -197,6 +197,378 @@ public class Runner {
       ]
       break
 
+    case "c++":
+    case "cpp":
+      mainFile = path.join(tempDir, "solution.cpp")
+      await writeFile(mainFile, code)
+
+      // Create a C++ runner file
+      await writeFile(
+        path.join(tempDir, "runner.cpp"),
+        `#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+
+// Forward declaration of user's code
+extern int main();
+
+// Capture function for redirecting stdout
+std::string captureOutput() {
+    // Redirect cout to our stringstream
+    std::stringstream buffer;
+    std::streambuf* oldCout = std::cout.rdbuf(buffer.rdbuf());
+    
+    // Reset cin to read from our input file
+    std::ifstream in("/app/input.txt");
+    std::streambuf* oldCin = std::cin.rdbuf(in.rdbuf());
+    
+    // Run user's main
+    main();
+    
+    // Restore cout and cin
+    std::cout.rdbuf(oldCout);
+    std::cin.rdbuf(oldCin);
+    
+    return buffer.str();
+}
+
+int main() {
+    // Capture stdout
+    std::string output = captureOutput();
+    
+    // Write to output file
+    std::ofstream outFile("/app/output.txt");
+    outFile << output;
+    outFile.close();
+    
+    return 0;
+}
+`
+      )
+
+      // Create a simple Makefile
+      await writeFile(
+        path.join(tempDir, "Makefile"),
+        `all:
+	g++ -o runner runner.cpp solution.cpp -std=c++17
+
+clean:
+	rm -f runner
+`
+      )
+
+      runtimeImage = "gcc:latest"
+      execCommand = [
+        "/bin/sh",
+        "-c",
+        "cd /app && make && ./runner"
+      ]
+      break
+
+    case "c":
+      mainFile = path.join(tempDir, "solution.c")
+      await writeFile(mainFile, code)
+
+      // Create a C runner file
+      await writeFile(
+        path.join(tempDir, "runner.c"),
+        `#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Forward declaration of user's code
+extern int main();
+
+// Function to redirect stdin/stdout and capture output
+void execute_and_capture() {
+    // Redirect stdin to our input file
+    FILE* input = freopen("/app/input.txt", "r", stdin);
+    if (!input) {
+        fprintf(stderr, "Error opening input file\\n");
+        return;
+    }
+    
+    // Redirect stdout to our output file
+    FILE* output = freopen("/app/output.txt", "w", stdout);
+    if (!output) {
+        fprintf(stderr, "Error opening output file\\n");
+        fclose(input);
+        return;
+    }
+    
+    // Run user's main
+    main();
+    
+    // Close redirected files
+    fclose(input);
+    fclose(output);
+}
+
+int main(int argc, char* argv[]) {
+    execute_and_capture();
+    return 0;
+}
+`
+      )
+
+      // Create a simple Makefile for C
+      await writeFile(
+        path.join(tempDir, "Makefile"),
+        `all:
+	gcc -o runner runner.c solution.c -std=c11
+
+clean:
+	rm -f runner
+`
+      )
+
+      runtimeImage = "gcc:latest"
+      execCommand = [
+        "/bin/sh",
+        "-c",
+        "cd /app && make && ./runner"
+      ]
+      break
+
+    case "ruby":
+      mainFile = path.join(tempDir, "solution.rb")
+      await writeFile(mainFile, code)
+
+      // Create a Ruby runner file
+      await writeFile(
+        path.join(tempDir, "runner.rb"),
+        `#!/usr/bin/env ruby
+require_relative './solution'
+
+# Redirect stdin to input file
+$stdin = File.open('/app/input.txt', 'r')
+
+# Capture stdout
+original_stdout = $stdout
+$stdout = StringIO.new
+
+# Run the solution based on what's available
+if defined?(solve)
+  output = solve($stdin.read)
+  $stdout.puts(output) if output
+elsif defined?(main)
+  output = main($stdin.read)
+  $stdout.puts(output) if output
+elsif defined?(solution)
+  output = solution($stdin.read)
+  $stdout.puts(output) if output
+else
+  # Try to find a method that could be called
+  Object.methods.each do |method|
+    if method.to_s =~ /^(solve|main|solution|process)/
+      output = send(method, $stdin.read)
+      $stdout.puts(output) if output
+      break
+    end
+  end
+end
+
+# Get captured output and write to file
+captured_output = $stdout.string
+$stdout = original_stdout
+File.write('/app/output.txt', captured_output)
+`
+      )
+
+      runtimeImage = "ruby:3-alpine"
+      execCommand = ["ruby", "/app/runner.rb"]
+      break
+
+    case "go":
+      mainFile = path.join(tempDir, "solution.go")
+      await writeFile(mainFile, code)
+
+      // Create a Go runner file
+      await writeFile(
+        path.join(tempDir, "runner.go"),
+        `package main
+
+import (
+	"io/ioutil"
+	"os"
+)
+
+// Import user's solution
+// The solution.go file should have package main
+
+func main() {
+	// Read input
+	input, err := ioutil.ReadFile("/app/input.txt")
+	if err != nil {
+		panic(err)
+	}
+
+	// Redirect stdin to read from input
+	oldStdin := os.Stdin
+	tmpFile, err := ioutil.TempFile("", "stdin")
+	if err != nil {
+		panic(err)
+	}
+	defer os.Remove(tmpFile.Name())
+	
+	_, err = tmpFile.Write(input)
+	if err != nil {
+		panic(err)
+	}
+	tmpFile.Seek(0, 0)
+	os.Stdin = tmpFile
+	
+	// Redirect stdout to capture output
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	
+	// Run the user's main function
+	main()
+	
+	// Restore stdin/stdout
+	os.Stdin = oldStdin
+	w.Close()
+	os.Stdout = oldStdout
+	
+	// Read captured output
+	capturedOutput, _ := ioutil.ReadAll(r)
+	
+	// Write to output file
+	ioutil.WriteFile("/app/output.txt", capturedOutput, 0644)
+}`
+      )
+
+      runtimeImage = "golang:1.18-alpine"
+      execCommand = [
+        "/bin/sh",
+        "-c",
+        "cd /app && go build -o runner *.go && ./runner"
+      ]
+      break
+
+    case "rust":
+      mainFile = path.join(tempDir, "solution.rs")
+      await writeFile(mainFile, code)
+
+      // Create a Cargo.toml file
+      await writeFile(
+        path.join(tempDir, "Cargo.toml"),
+        `[package]
+name = "solution"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+`
+      )
+
+      // Create a main.rs file to import and run the solution
+      await writeFile(
+        path.join(tempDir, "main.rs"),
+        `use std::fs::{self, File};
+use std::io::{self, Read, Write};
+
+// Include user's solution code
+include!("solution.rs");
+
+fn main() -> io::Result<()> {
+    // Read input
+    let mut input = String::new();
+    File::open("/app/input.txt")?.read_to_string(&mut input)?;
+    
+    // Capture output
+    let output = if let Some(main_fn) = option_env!("MAIN_FN") {
+        match main_fn {
+            "main" => main(&input),
+            "solve" => solve(&input),
+            "solution" => solution(&input),
+            _ => String::from("Error: Function not found"),
+        }
+    } else {
+        // Try common function names
+        match () {
+            _ if is_defined!("main") => main(&input),
+            _ if is_defined!("solve") => solve(&input),
+            _ if is_defined!("solution") => solution(&input),
+            _ => String::from("Error: No callable function found"),
+        }
+    };
+    
+    // Write output
+    fs::write("/app/output.txt", output)?;
+    Ok(())
+}
+
+// Macro to check if function is defined (simplified)
+macro_rules! is_defined {
+    ($name:expr) => {
+        false // This is a placeholder, Rust doesn't have easy runtime reflection
+    };
+}
+`
+      )
+
+      runtimeImage = "rust:1.59-alpine"
+      execCommand = [
+        "/bin/sh",
+        "-c",
+        "cd /app && rustc -o runner main.rs && ./runner"
+      ]
+      break
+
+    case "php":
+      mainFile = path.join(tempDir, "solution.php")
+      await writeFile(mainFile, code)
+
+      // Create a PHP runner file
+      await writeFile(
+        path.join(tempDir, "runner.php"),
+        `<?php
+// Include user's solution
+require_once('./solution.php');
+
+// Read input
+$input = file_get_contents('/app/input.txt');
+
+// Capture output
+ob_start();
+
+// Try to call the appropriate function
+if (function_exists('main')) {
+    $result = main($input);
+    if ($result !== null) echo $result;
+} elseif (function_exists('solve')) {
+    $result = solve($input);
+    if ($result !== null) echo $result;
+} elseif (function_exists('solution')) {
+    $result = solution($input);
+    if ($result !== null) echo $result;
+} else {
+    // Try to find any function that might be the entry point
+    $functions = get_defined_functions()['user'];
+    if (!empty($functions)) {
+        $func = $functions[0];
+        $result = $func($input);
+        if ($result !== null) echo $result;
+    } else {
+        echo "Error: No callable function found";
+    }
+}
+
+// Get captured output
+$output = ob_get_clean();
+
+// Write to output file
+file_put_contents('/app/output.txt', $output);
+`
+      )
+
+      runtimeImage = "php:8.1-alpine"
+      execCommand = ["php", "/app/runner.php"]
+      break
+    
     default:
       throw new Error(`Unsupported language: ${language}`)
   }

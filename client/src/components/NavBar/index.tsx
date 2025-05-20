@@ -14,10 +14,9 @@ const NavBar = () => {
     const [gridModel, setGridModel] = useState(false);
     const { theme, setTheme } = useTheme(); // Use the theme context
 
-    const { userData, isLoading } = useProfileStore(); 
-    const { logout } = useAuth();
+    const { user, logout, loading } = useAuth();
 
-    if(isLoading) {
+    if(loading) {
         return <Loader />
     }
 
@@ -81,19 +80,19 @@ const NavBar = () => {
                             </button>
                         </li>
 
-                        {userData ? (
+                        {user ? (
                             <>
                                 <li>
-                                    <Link href={`/profile/${userData?.username}`} className="relative group">
+                                    <Link href={`/profile/${user?.username}`} className="relative group">
                                         <div className="w-12 h-12 border- border-orange-600 uppercase rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-2xl font-bold text-white relative group overflow-hidden">
-                                            {userData?.image ? (
+                                            {user?.image ? (
                                                 <img
-                                                    src={userData?.image}
-                                                    alt={userData?.name || 'User'}
+                                                    src={user?.image}
+                                                    alt={user?.username || 'User'}
                                                     className="w-full h-full object-cover"
                                                 />
                                             ) : (
-                                                userData?.username?.charAt(0)
+                                                user?.username?.charAt(0)
                                             )}
                                         </div>
                                     </Link>

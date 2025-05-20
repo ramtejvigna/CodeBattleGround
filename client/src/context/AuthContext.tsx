@@ -1,21 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-
-// Define user type
-export interface User {
-    id: string;
-    email: string;
-    username: string;
-    fullName?: string;
-    preferredLanguage?: string;
-    avatarUrl?: string;
-    role?: string;
-    level?: number;
-    points?: number;
-}
+import { useAuthStore, User } from '../lib/store/authStore';
 
 // Define auth context type
 interface AuthContextType {
@@ -37,143 +25,81 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
     const router = useRouter();
     const pathname = usePathname();
+    
+    const { 
+        user, 
+        loading, 
+        error,
+        checkAuth,
+        login: storeLogin,
+        signup: storeSignup,
+        logout: storeLogout,
+        setError
+    } = useAuthStore();
 
-    // Check if user is authenticated on initial load
+    // Check auth status on initial load
     useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                const response = await fetch('/api/auth/session');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.user) {
-                        setUser(data.user);
-                    }
-
-                    if(data.user && data.user.role === "ADMIN") {
-                        router.push('/admin');
-                    }
-                }
-            } catch (err) {
-                console.error('Auth check failed:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         checkAuth();
     }, []);
 
-    // Redirect to login if accessing protected route without auth
+    // Handle protected routes and redirects
     useEffect(() => {
-        if (!loading && !user) {
+        if (!loading) {
             const protectedRoutes = [
                 '/profile',
                 '/challenge',
                 '/certifications',
                 '/settings',
                 '/battles'
-            ]
+            ];
 
-            // Check if current path is protected and user is not authenticated
-            if (protectedRoutes.some(route => pathname?.startsWith(route))) {
+            if (!user && protectedRoutes.some(route => pathname?.startsWith(route))) {
                 router.push('/login');
             }
-        }
 
-        if (user) {
-            const authRoutes = ['/login', '/signup'];
-
-            if (authRoutes.includes(pathname || '')) {
-                if(user.role === "USER") {
-                    router.push('/');
-                } else if(user.role === "ADMIN") {
-                    router.push('/admin');
+            if (user) {
+                const authRoutes = ['/login', '/signup'];
+                if (authRoutes.includes(pathname || '')) {
+                    if (user.role === "USER") {
+                        router.push('/');
+                    } else if (user.role === "ADMIN") {
+                        router.push('/admin');
+                    }
                 }
             }
         }
     }, [user, loading, pathname, router]);
 
-    // Login function
     const login = async (email: string, password: string) => {
-        setLoading(true);
-        setError(null);
-
         try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Login failed');
-            }
-
-            setUser(data.user);
+            await storeLogin(email, password);
             router.push('/profile');
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'An unexpected error occurred');
-        } finally {
-            setLoading(false);
+            // Error is already handled in the store
         }
     };
 
-    // Signup function
     const signup = async (userData: Partial<User> & { password: string }) => {
-        setLoading(true);
-        setError(null);
-
         try {
-            const response = await fetch('/api/auth/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Signup failed');
-            }
-
-            setUser(data.user);
+            await storeSignup(userData);
             router.push('/profile');
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'An unexpected error occurred');
-        } finally {
-            setLoading(false);
+            // Error is already handled in the store
         }
     };
 
-    // Logout function
     const logout = async () => {
-        setLoading(true);
-
         try {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            
+            await storeLogout();
             await signOut({ redirect: false });
-
-            setUser(null);
-
-            localStorage.removeItem('user');
-            
             router.push('/login');
         } catch (err) {
             console.error('Logout failed:', err);
-        } finally {
-            setLoading(false);
         }
     };
 
-    // Clear error
     const clearError = () => {
         setError(null);
     };

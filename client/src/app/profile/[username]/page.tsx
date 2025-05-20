@@ -252,7 +252,7 @@ const ProfileContent = () => {
                         {/* Stats */}
                         <div className="flex flex-wrap gap-4 md:gap-8 md:ml-auto">
                             {[
-                                { icon: <Trophy className="w-4 h-4 text-yellow-500" />, label: "Global Rank", value: `#${userData.userProfile?.rank || '-'}` },
+                                { icon: <Trophy className="w-4 h-4 text-yellow-500" />, label: "Global Rank", value: `${userData.userProfile?.rank || '-'}` },
                                 { icon: <Star className="w-4 h-4 text-blue-500" />, label: "Level", value: userData.userProfile?.level || 0 },
                                 { icon: <CheckCircle className="w-4 h-4 text-green-500" />, label: "Problems", value: userData.userProfile?.solved || 0 },
                                 { icon: <Coffee className="w-4 h-4 text-orange-500" />, label: "Streak", value: `${userData.userProfile?.streakDays || 0} days` }

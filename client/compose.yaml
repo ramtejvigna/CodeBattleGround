@@ -34,7 +34,10 @@ services:
     command: >
       sh -c "docker pull node:18-alpine &&
              docker pull python:3.11-alpine &&
-             docker pull openjdk:17-slim"
+             docker pull openjdk:17-slim &&
+             docker pull gcc:latest &&
+             docker pull g++:latest &&
+             docker pull ruby:latest"
 
   # Database
   postgres:

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { updateUserRanks } from "@/lib/services/updateRanks";
 
 const prisma = new PrismaClient();
 
@@ -71,6 +72,8 @@ export async function POST(req: NextRequest) {
                 userProfile: true
             }
         });
+
+        await updateUserRanks();
 
         // Exclude the password from the response
         const { password: _, ...userWithoutPassword } = user;

@@ -123,7 +123,7 @@ function ChallengesContent() {
     }
 
     return (
-        <div className={`container px-32 mx-auto px-4 py-8 ${theme === 'dark' ? 'text-white bg-gray-900' : 'text-black bg-white'}`}>
+        <div className={`container px-32 mx-auto py-8 ${theme === 'dark' ? 'text-white bg-gray-900' : 'text-black bg-white'}`}>
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
                 <div>

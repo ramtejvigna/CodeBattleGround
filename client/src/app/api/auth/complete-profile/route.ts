@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { updateUserRanks } from "@/lib/services/updateRanks";
 
 // Validation schema 
 const profileSchema = z.object({
@@ -72,6 +73,8 @@ export async function POST(req: NextRequest) {
                 userProfile: true
             }
         });
+
+        await updateUserRanks();
 
         return NextResponse.json(
             {

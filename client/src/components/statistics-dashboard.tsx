@@ -23,6 +23,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+import { useTheme } from "@/context/ThemeContext"
 
 // Interface definitions
 interface SubmissionLanguage {
@@ -105,7 +106,7 @@ const processSubmissionsData = (submissions: Submission[]): ProcessedStats => {
   // Count accepted submissions
   const acceptedSubmissions = submissions.filter(sub => sub.status === "ACCEPTED").length
   const successRate = Math.round((acceptedSubmissions / submissions.length) * 100)
-  
+
   // Calculate average runtime
   const avgRuntime = Math.round(
     submissions.reduce((sum: number, sub) => sum + Number(sub.runtime || 0), 0) / submissions.length
@@ -116,19 +117,19 @@ const processSubmissionsData = (submissions: Submission[]): ProcessedStats => {
     acc[sub.status] = (acc[sub.status] || 0) + 1
     return acc
   }, {})
-  
+
   const statusColors: Record<string, string> = {
-    "ACCEPTED": "#4CAF50",
-    "WRONG_ANSWER": "#F44336",
-    "TIME_LIMIT_EXCEEDED": "#FF9800",
-    "RUNTIME_ERROR": "#9C27B0",
-    "COMPILATION_ERROR": "#E91E63"
+    "ACCEPTED": "#10B981", // green-500
+    "WRONG_ANSWER": "#EF4444", // red-500
+    "TIME_LIMIT_EXCEEDED": "#F59E0B", // amber-500
+    "RUNTIME_ERROR": "#F97316", // orange-500
+    "COMPILATION_ERROR": "#EC4899" // pink-500
   }
-  
+
   const statusDistribution = Object.entries(statusCounts).map(([status, count]) => ({
     name: status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
     value: count,
-    color: statusColors[status] || "#9E9E9E"
+    color: statusColors[status] || "#6B7280" // gray-500
   }))
 
   // Difficulty distribution
@@ -137,19 +138,19 @@ const processSubmissionsData = (submissions: Submission[]): ProcessedStats => {
     acc[difficulty] = (acc[difficulty] || 0) + 1
     return acc
   }, {})
-  
+
   const difficultyColors: Record<string, string> = {
-    "EASY": "#4CAF50",
-    "MEDIUM": "#FF9800",
-    "HARD": "#F44336",
-    "EXPERT": "#9C27B0",
-    "UNKNOWN": "#9E9E9E"
+    "EASY": "#10B981", // green-500
+    "MEDIUM": "#F59E0B", // amber-500
+    "HARD": "#EF4444", // red-500
+    "EXPERT": "#8B5CF6", // violet-500
+    "UNKNOWN": "#6B7280" // gray-500
   }
-  
+
   const difficultyDistribution = Object.entries(difficultyCounts).map(([difficulty, count]) => ({
     name: difficulty.charAt(0) + difficulty.slice(1).toLowerCase(),
     value: count,
-    color: difficultyColors[difficulty] || "#9E9E9E"
+    color: difficultyColors[difficulty] || "#6B7280" // gray-500
   }))
 
   // Language distribution
@@ -158,21 +159,21 @@ const processSubmissionsData = (submissions: Submission[]): ProcessedStats => {
     acc[language] = (acc[language] || 0) + 1
     return acc
   }, {})
-  
+
   const languageColors: Record<string, string> = {
     "JavaScript": "#F7DF1E",
     "Python": "#3776AB",
     "Java": "#007396",
     "C++": "#00599C",
     "TypeScript": "#3178C6",
-    "Unknown": "#9E9E9E"
+    "Unknown": "#6B7280" // gray-500
   }
-  
+
   const languageDistribution = Object.entries(languageCounts).map(([language, count]) => ({
     name: language,
     value: count,
     percentage: Math.round((count / submissions.length) * 100),
-    color: languageColors[language] || "#9E9E9E"
+    color: languageColors[language] || "#6B7280" // gray-500
   }))
 
   return {
@@ -221,6 +222,7 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
   const [isLoading, setIsLoading] = useState(true)
   const [timeRange, setTimeRange] = useState("month")
   const [activeTab, setActiveTab] = useState("activity")
+  const { theme } = useTheme();
 
   // Process submissions data
   const stats = useMemo(() => processSubmissionsData(submissions), [submissions])
@@ -259,12 +261,12 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
     },
   }
 
-  // Custom tooltip for charts
+  // Custom tooltip for charts with theme-aware styling
   const CustomTooltip = ({ active, payload, label }: ChartTooltipProps) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-gray-800 border border-gray-700 p-3 rounded-lg shadow-lg">
-          <p className="text-gray-300 font-medium">{label}</p>
+        <div className={`bg-background border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} p-3 rounded-lg shadow-lg`}>
+          <p className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{label}</p>
           {payload.map((entry, index) => (
             <p key={`item-${index}`} style={{ color: entry.color || entry.fill }}>
               {entry.name}: {entry.value}
@@ -291,11 +293,11 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
 
   // Mock data for categories (since we don't have real category data)
   const categoryData = [
-    { name: "Arrays", value: 24, color: "#FF6B6B" },
-    { name: "Strings", value: 18, color: "#4ECDC4" },
-    { name: "Dynamic Programming", value: 12, color: "#FFD166" },
-    { name: "Trees", value: 9, color: "#6A0572" },
-    { name: "Graphs", value: 6, color: "#1A535C" },
+    { name: "Arrays", value: 24, color: "#EF4444" }, // red-500
+    { name: "Strings", value: 18, color: "#3B82F6" }, // blue-500
+    { name: "Dynamic Programming", value: 12, color: "#F59E0B" }, // amber-500
+    { name: "Trees", value: 9, color: "#8B5CF6" }, // violet-500
+    { name: "Graphs", value: 6, color: "#10B981" }, // green-500
   ]
 
   // Weekly progress data
@@ -305,6 +307,33 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
     { week: "Week 3", problems: 8, points: 180 },
     { week: "Week 4", problems: 20, points: 450 },
   ]
+
+  const statsCards = [
+    {
+      title: "Total Submissions",
+      value: stats.totalSubmissions,
+      icon: <Code2 className="h-5 w-5 text-orange-500" />
+    },
+    {
+      title: "Success Rate",
+      value: stats.successRate,
+      icon: <CheckCircle2 className="h-5 w-5 text-green-500" />
+    },
+    {
+      title: "Avg. Runtime",
+      value: stats.avgRuntime,
+      icon: <Clock className="h-5 w-5 text-blue-500" />
+    },
+    {
+      title: "Current Streak",
+      value: streakDays,
+      icon: <Zap className="h-5 w-5 text-purple-500" />
+    }
+  ]
+
+  // Theme-aware chart colors
+  const chartGridColor = theme === 'dark' ? '#374151' : '#E5E7EB' // gray-700 / gray-200
+  const chartTextColor = theme === 'dark' ? '#D1D5DB' : '#4B5563' // gray-300 / gray-600
 
   return (
     <motion.div className="space-y-8" initial="hidden" animate="visible" variants={containerVariants}>
@@ -331,87 +360,46 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
       </div>
 
       {/* Stats Overview */}
-      <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" variants={containerVariants}>
-        <motion.div variants={itemVariants}>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Submissions</p>
-                  {isLoading ? (
-                    <Skeleton className="h-9 w-24 mt-1" />
-                  ) : (
-                    <h3 className="text-3xl font-bold mt-1">{stats.totalSubmissions}</h3>
-                  )}
+      <motion.div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        variants={containerVariants}
+      >
+        {statsCards.map((card, index) => (
+          <motion.div key={index} variants={itemVariants}>
+            <Card
+              className={`${theme === 'dark'
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-white text-gray-900'
+                } shadow-md`}
+            >
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p
+                      className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                        }`}
+                    >
+                      {card.title}
+                    </p>
+                    {isLoading ? (
+                      <Skeleton className="h-9 w-24 mt-1" />
+                    ) : (
+                      <h3 className="text-3xl font-bold mt-1">{card.value}</h3>
+                    )}
+                  </div>
+                  <div
+                    className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-orange-500/20' : 'bg-orange-100'
+                      }`}
+                  >
+                    {card.icon}
+                  </div>
                 </div>
-                <div className="p-2 bg-orange-500/20 rounded-lg">
-                  <Code2 className="h-5 w-5 text-orange-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-muted-foreground">Success Rate</p>
-                  {isLoading ? (
-                    <Skeleton className="h-9 w-24 mt-1" />
-                  ) : (
-                    <h3 className="text-3xl font-bold mt-1">{stats.successRate}%</h3>
-                  )}
-                </div>
-                <div className="p-2 bg-green-500/20 rounded-lg">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-muted-foreground">Avg. Runtime</p>
-                  {isLoading ? (
-                    <Skeleton className="h-9 w-24 mt-1" />
-                  ) : (
-                    <h3 className="text-3xl font-bold mt-1">{stats.avgRuntime}ms</h3>
-                  )}
-                </div>
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <Clock className="h-5 w-5 text-blue-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-muted-foreground">Current Streak</p>
-                  {isLoading ? (
-                    <Skeleton className="h-9 w-24 mt-1" />
-                  ) : (
-                    <h3 className="text-3xl font-bold mt-1">{streakDays} days</h3>
-                  )}
-                </div>
-                <div className="p-2 bg-purple-500/20 rounded-lg">
-                  <Zap className="h-5 w-5 text-purple-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </motion.div>
+
 
       {/* Tabs for different statistics views */}
       <motion.div variants={itemVariants}>
@@ -458,9 +446,14 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
                   ) : (
                     <ResponsiveContainer width="100%" height={300}>
                       <ComposedChart data={dailyActivity}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="day" />
-                        <YAxis />
+                        <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
+                        <XAxis
+                          dataKey="day"
+                          tick={{ fill: chartTextColor }}
+                        />
+                        <YAxis
+                          tick={{ fill: chartTextColor }}
+                        />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="count" name="Problems Solved" fill="#F97316" radius={[4, 4, 0, 0]}>
                           {dailyActivity.map((entry, index) => (
@@ -503,15 +496,14 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
                       {streakData.reverse().slice(0, 28).map((day, i) => (
                         <motion.div
                           key={i}
-                          className={`aspect-square rounded-md flex items-center justify-center text-xs font-medium ${
-                            day.value === 0
-                              ? "bg-muted/50 text-muted-foreground"
+                          className={`aspect-square rounded-md flex items-center justify-center text-xs font-medium ${day.value === 0
+                              ? theme === 'dark' ? "bg-gray-800 text-gray-500" : "bg-gray-100 text-gray-400"
                               : day.value >= 5
                                 ? "bg-orange-500 text-white"
                                 : day.value >= 3
                                   ? "bg-orange-500/80 text-white"
                                   : "bg-orange-500/50 text-white"
-                          }`}
+                            }`}
                           initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ delay: i * 0.01 }}
@@ -567,7 +559,12 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
                           ))}
                         </Pie>
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend layout="vertical" verticalAlign="middle" align="right" />
+                        <Legend
+                          layout="vertical"
+                          verticalAlign="middle"
+                          align="right"
+                          wrapperStyle={{ color: chartTextColor }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   )}
@@ -588,13 +585,20 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
                     <Skeleton className="h-[300px] w-full" />
                   ) : (
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart 
-                        data={stats.difficultyDistribution} 
+                      <BarChart
+                        data={stats.difficultyDistribution}
                         layout="vertical"
                       >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
+                        <XAxis
+                          type="number"
+                          tick={{ fill: chartTextColor }}
+                        />
+                        <YAxis
+                          dataKey="name"
+                          type="category"
+                          tick={{ fill: chartTextColor }}
+                        />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="value" name="Problems Solved" radius={[0, 4, 4, 0]}>
                           {stats.difficultyDistribution.map((entry, index) => (
@@ -647,7 +651,12 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
                           ))}
                         </Pie>
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend layout="vertical" verticalAlign="middle" align="right" />
+                        <Legend
+                          layout="vertical"
+                          verticalAlign="middle"
+                          align="right"
+                          wrapperStyle={{ color: chartTextColor }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   )}
@@ -669,10 +678,20 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
                   ) : (
                     <ResponsiveContainer width="100%" height={300}>
                       <ComposedChart data={weeklyProgress}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="week" />
-                        <YAxis yAxisId="left" />
-                        <YAxis yAxisId="right" orientation="right" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
+                        <XAxis
+                          dataKey="week"
+                          tick={{ fill: chartTextColor }}
+                        />
+                        <YAxis
+                          yAxisId="left"
+                          tick={{ fill: chartTextColor }}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          tick={{ fill: chartTextColor }}
+                        />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar
                           yAxisId="left"
@@ -742,6 +761,7 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
                             layout="vertical"
                             verticalAlign="middle"
                             align="right"
+                            wrapperStyle={{ color: chartTextColor }}
                           />
                         </PieChart>
                       </ResponsiveContainer>
@@ -761,7 +781,7 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
                                 <span className="text-sm font-medium">{lang.name}</span>
                                 <span className="text-sm text-muted-foreground">{lang.percentage}%</span>
                               </div>
-                              <div className="w-full bg-muted rounded-full h-2">
+                              <div className={`w-full rounded-full h-2 ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'}`}>
                                 <motion.div
                                   className="h-2 rounded-full"
                                   style={{ backgroundColor: lang.color }}
@@ -784,7 +804,10 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
       </motion.div>
 
       {/* Recent Performance Insights */}
-      <motion.div variants={itemVariants} className="rounded-xl p-6 border">
+      <motion.div
+        variants={itemVariants}
+        className={`rounded-xl p-6 border ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}
+      >
         <h2 className="text-lg font-bold mb-4 flex items-center">
           <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
           Performance Insights
@@ -798,9 +821,9 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
-              <div className="p-2 bg-green-500/20 rounded-lg text-green-500">
-                <TrendingUp className="w-5 h-5" />
+            <div className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
+              <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-green-500/20' : 'bg-green-100'}`}>
+                <TrendingUp className="w-5 h-5 text-green-500" />
               </div>
               <div>
                 <h3 className="font-medium">Improving in Java</h3>
@@ -808,12 +831,14 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
                   Your success rate in Java problems has increased. You've solved {stats.acceptedSubmissions} problems successfully.
                 </p>
               </div>
-              <Badge className="ml-auto bg-green-500/20 text-green-500 hover:bg-green-500/30">+{stats.successRate}%</Badge>
+              <Badge className={`ml-auto ${theme === 'dark' ? 'bg-green-500/20 text-green-500 hover:bg-green-500/30' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+                +{stats.successRate}%
+              </Badge>
             </div>
 
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
-              <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-500">
-                <AlertTriangle className="w-5 h-5" />
+            <div className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
+              <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-yellow-500/20' : 'bg-yellow-100'}`}>
+                <AlertTriangle className="w-5 h-5 text-yellow-500" />
               </div>
               <div>
                 <h3 className="font-medium">Opportunity in Medium Difficulty</h3>
@@ -821,12 +846,14 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
                   You're doing well with Medium difficulty problems. Keep practicing to improve your skills.
                 </p>
               </div>
-              <Badge className="ml-auto bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30">Medium</Badge>
+              <Badge className={`ml-auto ${theme === 'dark' ? 'bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'}`}>
+                Medium
+              </Badge>
             </div>
 
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
-              <div className="p-2 bg-blue-500/20 rounded-lg text-blue-500">
-                <Award className="w-5 h-5" />
+            <div className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
+              <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
+                <Award className="w-5 h-5 text-blue-500" />
               </div>
               <div>
                 <h3 className="font-medium">Consistent Improvement</h3>
@@ -834,7 +861,9 @@ const StatisticsDashboard = ({ submissions = [] }: StatisticsDashboardProps) => 
                   You've maintained a {streakDays}-day streak. Keep it up to improve your ranking!
                 </p>
               </div>
-              <Badge className="ml-auto bg-blue-500/20 text-blue-500 hover:bg-blue-500/30">{streakDays} days</Badge>
+              <Badge className={`ml-auto ${theme === 'dark' ? 'bg-blue-500/20 text-blue-500 hover:bg-blue-500/30' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}>
+                {streakDays} days
+              </Badge>
             </div>
           </div>
         )}
