@@ -32,6 +32,7 @@ import toast from 'react-hot-toast';
 import StatisticsDashboard from '@/components/statistics-dashboard';
 import { useParams } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuthStore } from '@/lib/store/authStore';
 
 export default function UserProfilePage() {
     const { fetchUserProfileByUsername } = useProfileStore();
@@ -85,6 +86,7 @@ const formatStatus = (status: string) => {
 const ProfileContent = () => {
     const [activeTab, setActiveTab] = useState('overview');
     const { theme } = useTheme();
+    const { user } = useAuthStore();
     const isDark = theme === 'dark';
 
     // Get all profile data from Zustand store
@@ -667,7 +669,7 @@ const ProfileContent = () => {
                 )}
 
                 {activeTab === 'statistics' && (
-                    <StatisticsDashboard submissions={submissions} />
+                    <StatisticsDashboard userId={user?.id} />
                 )}
             </div>
         </div>
