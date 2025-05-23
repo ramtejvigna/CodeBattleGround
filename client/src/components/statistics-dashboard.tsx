@@ -353,6 +353,47 @@ const renderActiveShape = (props: any) => {
   )
 }
 
+// Add this helper function at the top with other utility functions
+const generateCalendarData = (submissions: Submission[]) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Generate last 28 days (4 weeks) of data
+  const calendarData = Array.from({ length: 28 }, (_, i) => {
+    const date = new Date(today);
+    date.setDate(date.getDate() - (27 - i));
+    return {
+      date: date.toISOString().split('T')[0],
+      count: 0,
+      day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      isToday: date.getTime() === today.getTime()
+    };
+  });
+
+  // Count submissions by date
+  if (submissions && submissions.length > 0) {
+    submissions.forEach((sub) => {
+      const subDate = new Date(sub.createdAt);
+      subDate.setHours(0, 0, 0, 0);
+      console.log(sub.createdAt.split("T")[0], " - ", subDate.toISOString().split("T")[0])
+      const dayIndex = calendarData.findIndex((day) => 
+        day.date === subDate.toISOString().split("T")[0]
+      );
+      if (dayIndex !== -1) {
+        calendarData[dayIndex].count += 1;
+      }
+    });
+  }
+
+  // Group by weeks
+  const weeks: Array<typeof calendarData> = [];
+  for (let i = 0; i < 4; i++) {
+    weeks.push(calendarData.slice(i * 7, (i + 1) * 7));
+  }
+
+  return weeks;
+};
+
 interface StatisticsDashboardProps {
   userId: string | undefined
 }
@@ -759,7 +800,7 @@ const StatisticsDashboard = ({ userId }: StatisticsDashboardProps) => {
               </Card>
 
               {/* Streak Calendar */}
-              <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 rounded-xl overflow-hidden">
+              <Card className={`bg-gradient-to-r from-gray-50 to-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 border-0 rounded-xl overflow-hidden ${theme === "dark" ? "from-gray-800 to-gray-900 text-white" : ""}`}>
                 <CardHeader className={`bg-gradient-to-r from-gray-50 to-gray-100 ${theme === "dark" ? "from-gray-800 to-gray-900 text-white" : ""}`}>
                   <CardTitle className="flex items-center">
                     <Zap className="h-5 w-5 mr-2 text-purple-500" />
@@ -767,38 +808,78 @@ const StatisticsDashboard = ({ userId }: StatisticsDashboardProps) => {
                   </CardTitle>
                   <CardDescription>Your daily coding consistency</CardDescription>
                 </CardHeader>
-                <CardContent className={`pt-6 ${theme === "dark" ? "bg-gray-800" : ""}`}>
+                <CardContent className={`pt-6 ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
                   {isLoading ? (
                     <Skeleton className="h-[300px] w-full" />
                   ) : (
-                    <div className="grid grid-cols-7 gap-2">
-                      {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
-                        <div key={i} className="text-center text-xs text-muted-foreground">
-                          {day}
+                    <div className="space-y-6">
+                      {/* Calendar Grid */}
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-7 gap-2 mb-4">
+                          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
+                            <div key={i} className="text-center text-xs text-muted-foreground font-medium">
+                              {day}
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                      {dailyActivity.slice(-28).map((day, i) => (
-                        <motion.div
-                          key={i}
-                          className={`aspect-square rounded-md flex items-center justify-center text-xs font-medium ${
-                            day.count === 0
-                              ? theme === "dark"
-                                ? "bg-gray-800 text-gray-500"
-                                : "bg-gray-100 text-gray-400"
-                              : day.count >= 5
-                                ? "bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg"
-                                : day.count >= 3
-                                  ? "bg-gradient-to-br from-orange-400 to-amber-400 text-white shadow-md"
-                                  : "bg-gradient-to-br from-orange-300 to-amber-300 text-white shadow"
-                          }`}
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ delay: i * 0.01 }}
-                          whileHover={{ scale: 1.1, rotate: 5, transition: { duration: 0.2 } }}
-                        >
-                          {day.count > 0 && day.count}
-                        </motion.div>
-                      ))}
+                        {generateCalendarData(submissions).map((week, weekIndex) => (
+                          <div key={weekIndex} className="grid grid-cols-7 gap-2">
+                            {week.map((day, dayIndex) => (
+                              <motion.div
+                                key={`${weekIndex}-${dayIndex}`}
+                                className={`aspect-square rounded-md flex items-center justify-center text-xs font-medium relative group ${
+                                  day.isToday
+                                    ? "ring-2 ring-orange-500 ring-offset-2 ring-offset-background"
+                                    : ""
+                                } ${
+                                  day.count === 0
+                                    ? theme === "dark"
+                                      ? "bg-gray-400/50 hover:bg-gray-700/50"
+                                      : "bg-gray-100 hover:bg-gray-200"
+                                    : day.count >= 5
+                                      ? "bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg"
+                                      : day.count >= 3
+                                        ? "bg-gradient-to-br from-purple-400 to-purple-500 text-white shadow-md"
+                                        : "bg-gradient-to-br from-purple-300 to-purple-400 text-white"
+                                }`}
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: (weekIndex * 7 + dayIndex) * 0.01 }}
+                                whileHover={{ scale: 1.2, transition: { duration: 0.2 } }}
+                              >
+                                {day.count > 0 && day.count}
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block">
+                                  <div className={`px-2 py-1 text-xs rounded-md whitespace-nowrap ${
+                                    theme === "dark" ? "bg-gray-700" : "bg-gray-800 text-white"
+                                  }`}>
+                                    {new Date(day.date).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Legend */}
+                      <div className="flex justify-center items-center gap-4 pt-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-sm ${theme === "dark" ? "bg-gray-800/50" : "bg-gray-100"}`}></div>
+                          <span className="text-xs text-muted-foreground">No activity</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm bg-purple-300"></div>
+                          <span className="text-xs text-muted-foreground">1-2 submissions</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm bg-purple-400"></div>
+                          <span className="text-xs text-muted-foreground">3-4 submissions</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm bg-purple-500"></div>
+                          <span className="text-xs text-muted-foreground">5+ submissions</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </CardContent>

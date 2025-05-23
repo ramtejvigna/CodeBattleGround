@@ -35,14 +35,14 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuthStore } from '@/lib/store/authStore';
 
 export default function UserProfilePage() {
-    const { fetchUserProfileByUsername } = useProfileStore();
+    const { loadProfileData } = useProfileStore();
     const { username } = useParams();
 
     useEffect(() => {
         if (username) {
-            fetchUserProfileByUsername(username as string);
+            loadProfileData(username as string);
         }
-    }, [username, fetchUserProfileByUsername]);
+    }, [username, loadProfileData]);
 
     return (
         <ProtectedRoute>
@@ -93,38 +93,22 @@ const ProfileContent = () => {
     const {
         userData,
         isLoading,
-        fetchUserProfileByUsername,
+        loadProfileData,
         recentActivity,
         activityLoading,
-        fetchRecentActivity,
         submissions,
         submissionsLoading,
         hasMoreSubmissions,
         loadMoreSubmissions,
-        fetchSubmissions,
         handleGithubConnection
     } = useProfileStore();
 
-    // Fetch profile data when user is authenticated
+    // Load all profile data when component mounts or username changes
     useEffect(() => {
         if (userData?.username) {
-            fetchUserProfileByUsername(userData.username);
+            loadProfileData(userData.username);
         }
-    }, [userData?.username, fetchUserProfileByUsername]);
-
-    // Fetch recent activity
-    useEffect(() => {
-        if (userData?.id && activeTab === 'overview') {
-            fetchRecentActivity(userData.id, 5);
-        }
-    }, [userData?.id, activeTab, fetchRecentActivity]);
-
-    // Fetch submissions when submissions tab is active
-    useEffect(() => {
-        if (userData?.id && activeTab === 'submissions') {
-            fetchSubmissions(userData.id, 1);
-        }
-    }, [userData?.id, activeTab, fetchSubmissions]);
+    }, [userData?.username, loadProfileData]);
 
     const handleGithubConnectionClick = async () => {
         if (!userData) return;
@@ -134,7 +118,7 @@ const ProfileContent = () => {
 
             if (success) {
                 toast.success('GitHub account disconnected');
-                fetchUserProfileByUsername(userData.username);
+                loadProfileData(userData.username);
             } else if (!userData.githubConnected) {
                 // Redirect to GitHub auth
                 window.location.href = '/api/auth/github';
@@ -333,11 +317,11 @@ const ProfileContent = () => {
                                 <div className="mt-6">
                                     <h3 className={`text-sm font-semibold ${secondaryText} mb-3`}>Preferred Languages</h3>
                                     {hasLanguages ? (
-                                        <div className="space-y-3">
+                                        <div className="flex flex-wrap gap-2">
                                             {allLanguages.map((lang, i) => (
                                                 <div key={lang.id || i}>
-                                                    <div className={`flex justify-between text-sm mb-1 rounded-lg p-2 w-fit ${isDark ? 'bg-gray-700' : 'bg-orange-50'}`}>
-                                                        <span className={lang.isPreferred ? 'font-medium' : ''}>
+                                                    <div className={`flex justify-between text-sm mb-1 rounded-lg p-2 w-fit ${isDark ? 'bg-gray-700' : 'bg-orange-300'}`}>
+                                                        <span className={'font-medium'}>
                                                             {lang.name}
                                                             {lang.isPreferred && ' (Preferred)'}
                                                         </span>

@@ -6,13 +6,15 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 interface UpdateProfileRequest {
+    userId: string;
     name?: string;
     email?: string;
-    phone?: string;
-    bio?: string;
-    image?: string;
-    preferredLanguage?: string;
-    userId: string;
+    image?: string | null;
+    profile?: {
+        phone?: string;
+        bio?: string;
+        preferredLanguage?: string;
+    }
 }
 
 export async function POST(req: NextRequest) {
@@ -26,7 +28,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json() as UpdateProfileRequest;
-        const { name, email, phone, bio, image, preferredLanguage, userId } = body;
+        const { name, email, image, profile, userId } = body;
 
         if (!name || !email || !userId) {
             return NextResponse.json(
@@ -51,26 +53,31 @@ export async function POST(req: NextRequest) {
         };
 
         // Only include profile fields if at least one is provided
-        const hasProfileUpdates = bio !== undefined || phone !== undefined || preferredLanguage !== undefined;
+        const hasProfileUpdates = profile?.bio !== undefined || 
+                               profile?.phone !== undefined || 
+                               profile?.preferredLanguage !== undefined;
         
         if (hasProfileUpdates) {
             updateData.userProfile = {
                 upsert: {
                     create: {
-                        bio: bio || '',
-                        phone: phone || '',
-                        preferredLanguage: preferredLanguage || 'en',
+                        bio: profile?.bio || '',
+                        phone: profile?.phone || '',
+                        preferredLanguage: profile?.preferredLanguage || 'Java',
                         rank: null,
                         solved: 0,
                         level: 1,
                         points: 0,
                         streakDays: 0,
-                        badges: []
+                        // Removed the badges field as it was causing the error
+                        // The default value will be handled by Prisma schema
                     },
                     update: {
-                        ...(bio !== undefined && { bio }),
-                        ...(phone !== undefined && { phone }),
-                        ...(preferredLanguage !== undefined && { preferredLanguage }),
+                        ...(profile?.bio !== undefined && { bio: profile?.bio }),
+                        ...(profile?.phone !== undefined && { phone: profile?.phone }),
+                        ...(profile?.preferredLanguage !== undefined && { 
+                            preferredLanguage: profile?.preferredLanguage 
+                        }),
                         updatedAt: new Date()
                     }
                 }

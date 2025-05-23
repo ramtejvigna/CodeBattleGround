@@ -70,6 +70,9 @@ interface ProfileState {
   submissionsPage: number;
   hasMoreSubmissions: boolean;
   
+  // Add new property for tracking submission fetch status
+  submissionsLastFetched: number;
+  
   fetchUserProfileById: (userId: string) => Promise<void>;
   fetchUserProfileByUsername: (username: string) => Promise<void>;
   updateUserProfile: (userId: string, updateData: {
@@ -89,10 +92,49 @@ interface ProfileState {
   fetchSubmissions: (userId: string, page?: number, limit?: number) => Promise<void>;
   loadMoreSubmissions: () => void;
   handleGithubConnection: (userId: string, isConnected: boolean) => Promise<boolean>;
+  
+  // Add new comprehensive data loading function
+  loadProfileData: (username: string) => Promise<void>;
 }
 
 // Time threshold for refetching (5 minutes in milliseconds)
 const REFETCH_THRESHOLD = 5 * 60 * 1000;
+
+// Add these utility functions before the useProfileStore definition
+const isConsecutiveDay = (date1: Date, date2: Date): boolean => {
+  const diffTime = Math.abs(date2.getTime() - date1.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays === 1;
+};
+
+const calculateStreak = (submissions: Submission[]): number => {
+  if (!submissions.length) return 0;
+  
+  // Sort submissions by date in descending order and get unique dates
+  const uniqueDates = [...new Set(
+    submissions.map(sub => new Date(sub.createdAt).toDateString())
+  )].map(dateStr => new Date(dateStr))
+    .sort((a, b) => b.getTime() - a.getTime());
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // If no submission today or yesterday, streak is 0
+  if (uniqueDates[0].getTime() < today.getTime() - (24 * 60 * 60 * 1000)) {
+    return 0;
+  }
+
+  let currentStreak = 1;
+  for (let i = 0; i < uniqueDates.length - 1; i++) {
+    if (isConsecutiveDay(uniqueDates[i+1], uniqueDates[i])) {
+      currentStreak++;
+    } else {
+      break;
+    }
+  }
+  
+  return currentStreak;
+};
 
 export const useProfileStore = create<ProfileState>()(
   persist(
@@ -111,7 +153,10 @@ export const useProfileStore = create<ProfileState>()(
       submissionsLoading: false,
       submissionsPage: 1,
       hasMoreSubmissions: true,
-
+      
+      // Add new property for tracking submission fetch status
+      submissionsLastFetched: 0,
+      
       fetchUserProfileById: async (userId: string) => {
         if (!userId) return;
         
@@ -281,20 +326,43 @@ export const useProfileStore = create<ProfileState>()(
           }
           
           const data = await response.json();
+          const currentTime = Date.now();
           
           if (page === 1) {
-            set({
-              submissions: data.submissions,
+            const newSubmissions = data.submissions;
+            const streak = calculateStreak(newSubmissions);
+            
+            set(state => ({
+              submissions: newSubmissions,
               submissionsLoading: false,
-              hasMoreSubmissions: data.hasMore
-            });
+              hasMoreSubmissions: data.hasMore,
+              submissionsLastFetched: currentTime,
+              userData: state.userData ? {
+                ...state.userData,
+                userProfile: {
+                  ...state.userData.userProfile,
+                  streakDays: streak
+                }
+              } : null
+            }));
           } else {
             const currentSubmissions = get().submissions;
-            set({
-              submissions: [...currentSubmissions, ...data.submissions],
+            const allSubmissions = [...currentSubmissions, ...data.submissions];
+            const streak = calculateStreak(allSubmissions);
+            
+            set(state => ({
+              submissions: allSubmissions,
               submissionsLoading: false,
-              hasMoreSubmissions: data.hasMore
-            });
+              hasMoreSubmissions: data.hasMore,
+              submissionsLastFetched: currentTime,
+              userData: state.userData ? {
+                ...state.userData,
+                userProfile: {
+                  ...state.userData.userProfile,
+                  streakDays: streak
+                }
+              } : null
+            }));
           }
         } catch (error) {
           console.error("Error fetching submissions:", error);
@@ -347,6 +415,50 @@ export const useProfileStore = create<ProfileState>()(
         } catch (error) {
           console.error("Error with GitHub connection:", error);
           return false;
+        }
+      },
+      
+      // Add new comprehensive data loading function
+      loadProfileData: async (username: string) => {
+        if (!username) return;
+        
+        const currentTime = Date.now();
+        const state = get();
+        
+        // Check if we need to reload profile data
+        const shouldReloadProfile = !state.userData || 
+          state.userData.username !== username ||
+          currentTime - state.lastFetched > REFETCH_THRESHOLD;
+          
+        // Check if we need to reload submissions
+        const shouldReloadSubmissions = !state.submissions.length ||
+          state.userData?.id !== state.userData?.id ||
+          currentTime - state.submissionsLastFetched > REFETCH_THRESHOLD;
+        
+        try {
+          if (shouldReloadProfile) {
+            await get().fetchUserProfileByUsername(username);
+          }
+          
+          // Only fetch submissions if we have userData
+          const userData = get().userData;
+          if (userData?.id && shouldReloadSubmissions) {
+            set({ submissionsLoading: true });
+            
+            // Fetch submissions and update streak
+            await get().fetchSubmissions(userData.id, 1);
+            set({ submissionsLastFetched: currentTime });
+            
+            // Fetch recent activity
+            await get().fetchRecentActivity(userData.id, 5);
+          }
+        } catch (error) {
+          console.error("Error loading profile data:", error);
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to load profile data',
+            isLoading: false,
+            submissionsLoading: false
+          });
         }
       }
     }),

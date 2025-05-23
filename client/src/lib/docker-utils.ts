@@ -189,8 +189,8 @@ public class Runner {
 
       runtimeImage = "openjdk:17-slim"
       execCommand = [
-        "/bin/sh", 
-        "-c", 
+        "/bin/sh",
+        "-c",
         "cd /app && " +
         "javac Runner.java && " +
         "java -Xmx" + Math.floor(memoryLimit * 0.9) + "M Runner"
@@ -202,60 +202,116 @@ public class Runner {
       mainFile = path.join(tempDir, "solution.cpp")
       await writeFile(mainFile, code)
 
-      // Create a C++ runner file
+      // Create a C++ runner file that doesn't conflict with user's main
       await writeFile(
         path.join(tempDir, "runner.cpp"),
         `#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-
-// Forward declaration of user's code
-extern int main();
-
-// Capture function for redirecting stdout
-std::string captureOutput() {
-    // Redirect cout to our stringstream
-    std::stringstream buffer;
-    std::streambuf* oldCout = std::cout.rdbuf(buffer.rdbuf());
-    
-    // Reset cin to read from our input file
-    std::ifstream in("/app/input.txt");
-    std::streambuf* oldCin = std::cin.rdbuf(in.rdbuf());
-    
-    // Run user's main
-    main();
-    
-    // Restore cout and cin
-    std::cout.rdbuf(oldCout);
-    std::cin.rdbuf(oldCin);
-    
-    return buffer.str();
-}
-
-int main() {
-    // Capture stdout
-    std::string output = captureOutput();
-    
-    // Write to output file
-    std::ofstream outFile("/app/output.txt");
-    outFile << output;
-    outFile.close();
-    
-    return 0;
-}
-`
+        #include <fstream>
+        #include <sstream>
+        #include <string>
+        #include <stdexcept>
+        
+        // Forward declaration of user's solution function
+        std::string runSolution(const std::string& input);
+        
+        int main() {
+            try {
+                // Read input
+                std::ifstream inFile("/app/input.txt");
+                if (!inFile.is_open()) {
+                    throw std::runtime_error("Cannot open input file");
+                }
+                
+                std::stringstream buffer;
+                buffer << inFile.rdbuf();
+                std::string input = buffer.str();
+                inFile.close();
+                
+                // Run the solution
+                std::string output = runSolution(input);
+                
+                // Write output
+                std::ofstream outFile("/app/output.txt");
+                if (!outFile.is_open()) {
+                    throw std::runtime_error("Cannot open output file");
+                }
+                outFile << output;
+                outFile.close();
+                
+                return 0;
+            } catch (const std::exception& e) {
+                std::ofstream errorFile("/app/output.txt");
+                errorFile << "Runtime Error: " << e.what();
+                errorFile.close();
+                return 1;
+            } catch (...) {
+                std::ofstream errorFile("/app/output.txt");
+                errorFile << "Runtime Error: Unknown exception occurred";
+                errorFile.close();
+                return 1;
+            }
+        }
+        `
       )
 
-      // Create a simple Makefile
+      // Create a header file to connect the runner with the solution
+      await writeFile(
+        path.join(tempDir, "solution.h"),
+        `#ifndef SOLUTION_H
+        #define SOLUTION_H
+        
+        #include <string>
+        
+        std::string runSolution(const std::string& input);
+        
+        #endif
+        `
+      )
+
+      // Create a wrapper file that includes the user's solution
+      await writeFile(
+        path.join(tempDir, "solution_wrapper.cpp"),
+        `#include "solution.h"
+        #include <sstream>
+        #include <iostream>
+        #include <streambuf>
+        #include <stdexcept>
+        
+        // Rename user's main to avoid conflict
+        #define main user_main
+        #include "solution.cpp"
+        #undef main
+        
+        std::string runSolution(const std::string& input) {
+            try {
+                // Redirect cin/cout to capture the output
+                std::stringstream inputStream(input);
+                std::streambuf* oldCin = std::cin.rdbuf(inputStream.rdbuf());
+                
+                std::stringstream outputStream;
+                std::streambuf* oldCout = std::cout.rdbuf(outputStream.rdbuf());
+                
+                // Call the renamed user main with exception handling
+                int result = user_main();
+                
+                // Restore cin/cout
+                std::cin.rdbuf(oldCin);
+                std::cout.rdbuf(oldCout);
+                
+                return outputStream.str();
+            } catch (const std::exception& e) {
+                return "Runtime Error: " + std::string(e.what());
+            } catch (...) {
+                return "Runtime Error: Unknown exception occurred";
+            }
+        }
+        `
+      )
+
+      // Update the Makefile
       await writeFile(
         path.join(tempDir, "Makefile"),
-        `all:
-	g++ -o runner runner.cpp solution.cpp -std=c++17
-
-clean:
-	rm -f runner
-`
+        'all:\n\tg++ -o runner runner.cpp solution_wrapper.cpp -std=c++17 -I/app\n\nclean:\n\trm -f runner'
       )
 
       runtimeImage = "gcc:latest"
@@ -568,14 +624,69 @@ file_put_contents('/app/output.txt', $output);
       runtimeImage = "php:8.1-alpine"
       execCommand = ["php", "/app/runner.php"]
       break
-    
+
     default:
       throw new Error(`Unsupported language: ${language}`)
   }
 
+  // Add this function to format compilation errors
+  function formatCompilationError(logOutput: string): string {
+    const lines = logOutput.split('\n');
+    let formattedError = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      // Skip make and g++ command lines
+      if (line.startsWith('@g++') || line.startsWith('make:') || line.startsWith('In file included')) {
+        continue;
+      }
+
+      // Format error lines
+      if (line.includes('error:')) {
+        const parts = line.split(':');
+        if (parts.length >= 4) {
+          const file = parts[0].replace(/^.*\//, ''); // Remove path, keep filename
+          const lineNum = parts[1];
+          const colNum = parts[2];
+          const errorMsg = parts.slice(3).join(':').trim();
+
+          formattedError += `${file}:${lineNum}:${colNum}: ${errorMsg}\n`;
+
+          // Look for the code line that follows
+          if (i + 1 < lines.length) {
+            const nextLine = lines[i + 1].trim();
+            if (nextLine.includes('|')) {
+              const codeParts = nextLine.split('|');
+              if (codeParts.length >= 2) {
+                const lineNumber = codeParts[0].trim();
+                const code = codeParts[1];
+                formattedError += `${lineNumber} |${code}\n`;
+
+                // Look for the pointer line
+                if (i + 2 < lines.length) {
+                  const pointerLine = lines[i + 2].trim();
+                  if (pointerLine.includes('^')) {
+                    const pointerParts = pointerLine.split('|');
+                    if (pointerParts.length >= 2) {
+                      formattedError += `     |${pointerParts[1]}\n`;
+                    }
+                  }
+                }
+              }
+            }
+          }
+          formattedError += '\n';
+        }
+      }
+    }
+
+    return formattedError.trim() || logOutput;
+  }
+
   // Write input to file
   await writeFile(path.join(tempDir, "input.txt"), input)
-  
+
   // Create empty system_in.txt for Java
   if (language.toLowerCase() === "java") {
     await writeFile(path.join(tempDir, "system_in.txt"), "")
@@ -583,7 +694,7 @@ file_put_contents('/app/output.txt', $output);
 
   try {
     const docker = getDockerInstance()
-    
+
     const container = await docker.createContainer({
       Image: runtimeImage,
       Cmd: execCommand,
@@ -650,6 +761,7 @@ file_put_contents('/app/output.txt', $output);
     let output = ""
     let error = ""
     let status = ""
+    let compilationError = ""
 
     if (!timedOut) {
       // Read execution output
@@ -662,14 +774,53 @@ file_put_contents('/app/output.txt', $output);
         stdout: true,
         stderr: true,
       })
-      error = logs.toString("utf8")
+      const logOutput = logs.toString("utf8")
+
+      // Check for compilation errors specifically
+      if (logOutput.includes("error:") || logOutput.includes("Error:") || logOutput.includes("ERROR:")) {
+        // For C++
+        if (language.toLowerCase() === "c++" || language.toLowerCase() === "cpp") {
+          if (logOutput.includes("solution_wrapper.cpp:") ||
+            logOutput.includes("runner.cpp:") ||
+            logOutput.includes("solution.cpp:") ||
+            logOutput.includes("make: *** [Makefile")) {
+            compilationError = formatCompilationError(logOutput)
+            status = "COMPILATION_ERROR"
+          }
+        }
+        // For Java
+        else if (language.toLowerCase() === "java") {
+          if (logOutput.includes("Compilation Error") || logOutput.includes("javac")) {
+            // Format Java compilation errors
+            const javaError = logOutput
+              .split('\n')
+              .filter(line => line.includes('error:') || line.includes('^'))
+              .join('\n')
+            compilationError = javaError || logOutput
+            status = "COMPILATION_ERROR"
+          }
+        }
+        // For other languages - add similar formatting as needed
+        else {
+          compilationError = logOutput
+          status = "COMPILATION_ERROR"
+        }
+      }
+
+      // Check for runtime errors in output
+      if (output.includes("Runtime Error:")) {
+        error = output
+        status = "RUNTIME_ERROR"
+        output = "" // Clear output since it contains error
+      }
 
       // Check execution status
-      if (executionResult && executionResult.StatusCode !== 0) {
-        if (error.includes("OutOfMemoryError") || memoryUsage >= memoryLimit * 1024) {
+      if (executionResult && executionResult.StatusCode !== 0 && !status) {
+        if (logOutput.includes("OutOfMemoryError") || memoryUsage >= memoryLimit * 1024) {
           status = "MEMORY_LIMIT_EXCEEDED"
         } else {
           status = "RUNTIME_ERROR"
+          error = logOutput
         }
       }
     } else {
@@ -686,12 +837,17 @@ file_put_contents('/app/output.txt', $output);
     // Compare output with expected output
     const passed = output.trim() === expectedOutput.trim() && !status
 
+    // Return structure that shows formatted errors
     return {
       passed,
-      output: output || error,
+      output: passed ? output : (compilationError || error || output),
       error: status,
       runtime,
       memory: Math.round(memoryUsage),
+      showError: !!status,
+      errorType: status,
+      isCompilationError: status === "COMPILATION_ERROR",
+      formattedError: compilationError || error
     }
   } catch (error) {
     console.error("Docker execution error:", error)

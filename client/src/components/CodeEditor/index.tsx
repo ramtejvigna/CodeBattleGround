@@ -8,7 +8,7 @@ import { useTheme } from "@/context/ThemeContext";
 interface CodeEditorProps {
     value: string;
     onChange: (value: string) => void;
-    language: string;
+    language?: string;
     theme?: string;
     readOnly?: boolean;
     height?: string;
@@ -25,7 +25,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     const { theme: appTheme } = useTheme();
 
     // Map language to monaco editor language
-    const getMonacoLanguage = (lang: string): string => {
+    const getMonacoLanguage = (lang?: string): string => {
         const languageMap: { [key: string]: string } = {
             javascript: "javascript",
             typescript: "typescript",
@@ -42,7 +42,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
             php: "php",
         };
 
-        return languageMap[lang.toLowerCase()] || lang.toLowerCase();
+        return languageMap[lang?.toLowerCase() || ""] || lang?.toLowerCase() || "";
     };
 
     // Handle editor mount
@@ -81,7 +81,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     return (
         <Editor
             language={getMonacoLanguage(language)}
-            value={value}
+            value={value || ""}
             theme={editorTheme || (appTheme === "dark" ? "vs-dark" : "light")}
             onChange={(value) => onChange(value || "")}
             onMount={handleEditorDidMount}

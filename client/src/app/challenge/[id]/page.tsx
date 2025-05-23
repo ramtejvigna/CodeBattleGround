@@ -79,7 +79,7 @@ const ChallengePage = () => {
   // State
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedLanguage, setSelectedLanguage] = useState<string>(userData?.userProfile?.preferredLanguage || "JavaScript")
+  const [selectedLanguage, setSelectedLanguage] = useState<string>()
   const [code, setCode] = useState<string>("")
   const [languages, setLanguages] = useState<Language[]>([])
   const [testResults, setTestResults] = useState<TestResult[] | null>(null)
@@ -537,7 +537,7 @@ int main() {
                 <CodeEditor
                   value={code}
                   onChange={setCode}
-                  language={selectedLanguage.toLowerCase()}
+                  language={selectedLanguage?.toLowerCase()}
                   theme={theme === "dark" ? "vs-dark" : "light"}
                 />
               </div>
