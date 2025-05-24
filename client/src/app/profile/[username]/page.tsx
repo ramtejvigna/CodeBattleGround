@@ -100,15 +100,17 @@ const ProfileContent = () => {
         submissionsLoading,
         hasMoreSubmissions,
         loadMoreSubmissions,
-        handleGithubConnection
+        handleGithubConnection,
+        categories,
+        categoriesLoading
     } = useProfileStore();
 
-    // Load all profile data when component mounts or username changes
-    useEffect(() => {
-        if (userData?.username) {
-            loadProfileData(userData.username);
-        }
-    }, [userData?.username, loadProfileData]);
+    // Remove the redundant useEffect - data is already loaded in UserProfilePage
+    // useEffect(() => {
+    //     if (userData?.username) {
+    //         loadProfileData(userData.username);
+    //     }
+    // }, [userData?.username, loadProfileData]);
 
     const handleGithubConnectionClick = async () => {
         if (!userData) return;
@@ -131,9 +133,10 @@ const ProfileContent = () => {
 
     if (!userData) return null;
 
-    if (isLoading) {
-        return <Loader />;
-    }
+    // Remove the global loader - show section-specific loaders instead
+    // if (isLoading) {
+    //     return <Loader />;
+    // }
 
     // Prepare preferred languages data
     const submissionLanguages = submissions.reduce((acc, submission) => {
@@ -443,7 +446,7 @@ const ProfileContent = () => {
                                 </div>
                             </div>
 
-                            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                            <div className={`rounded-xl p-6 border ${borderColor} ${cardBg}`}>
                                 <div className="flex justify-between items-center mb-4">
                                     <h2 className="text-lg font-bold">Badges</h2>
                                     <button
@@ -470,7 +473,7 @@ const ProfileContent = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="bg-gray-750 rounded-lg p-4 flex flex-col items-center text-center">
+                                    <div className={`rounded-lg p-4 flex flex-col items-center text-center ${isDark ? 'bg-gray-750' : 'bg-gray-100'}`}>
                                         <Award className="w-10 h-10 text-gray-500 mb-2" />
                                         <p className="text-gray-400">No badges earned yet</p>
                                         <p className="text-xs text-gray-500 mt-2">
@@ -480,7 +483,7 @@ const ProfileContent = () => {
                                 )}
                             </div>
 
-                            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                            <div className={`rounded-xl p-6 border ${borderColor} ${cardBg}`}>
                                 <div className="flex items-center">
                                     <Github className="w-6 h-6 mr-3 text-gray-400" />
                                     <h2 className="text-lg font-bold">GitHub</h2>

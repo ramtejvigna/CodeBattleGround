@@ -37,21 +37,48 @@ interface UserProfile {
 
 interface Activity {
   id: string;
+  userId: string;
   type: string;
   name: string;
   result: string;
   points: number;
   time: string;
+  createdAt: string;
+  user?: {
+    id: string;
+    name: string;
+    username: string;
+    image: string;
+  };
 }
 
+// Enhanced submission interface for statistics
 export interface Submission {
   id: string;
-  status: string;
-  language: { name: string };
-  runtime: string;
-  memory: string;
+  status: "PENDING" | "ACCEPTED" | "WRONG_ANSWER" | "TIME_LIMIT_EXCEEDED" | "MEMORY_LIMIT_EXCEEDED" | "RUNTIME_ERROR" | "COMPILATION_ERROR";
+  language: { 
+    id: string;
+    name: string; 
+  };
+  runtime?: number;
+  memory?: number;
   createdAt: string;
-  challenge: { title: string; difficulty: string };
+  challenge?: {
+    id: string;
+    title: string; 
+    difficulty: "EASY" | "MEDIUM" | "HARD" | "EXPERT";
+    categoryId: string;
+    category?: {
+      name: string;
+    };
+  };
+  testResults?: any;
+}
+
+// Categories interface
+interface Category {
+  id: string;
+  name: string;
 }
 
 interface ProfileState {
@@ -64,15 +91,31 @@ interface ProfileState {
   recentActivity: Activity[];
   activityLoading: boolean;
   
+  // All activities for activity page
+  allActivities: Activity[];
+  allActivitiesLoading: boolean;
+  activitiesPage: number;
+  hasMoreActivities: boolean;
+  activitiesLastFetched: number;
+  activitiesTimeRange: "week" | "month" | "year" | "all";
+  activitiesType: "all" | "challenge" | "contest" | "badge";
+  
   // Submissions data
   submissions: Submission[];
   submissionsLoading: boolean;
   submissionsPage: number;
   hasMoreSubmissions: boolean;
-  
-  // Add new property for tracking submission fetch status
   submissionsLastFetched: number;
   
+  // Categories data for statistics
+  categories: { [key: string]: string };
+  categoriesLoading: boolean;
+  categoriesLastFetched: number;
+  
+  // Statistics
+  statisticsTimeRange: "week" | "month" | "year" | "all";
+  
+  // Core functions
   fetchUserProfileById: (userId: string) => Promise<void>;
   fetchUserProfileByUsername: (username: string) => Promise<void>;
   updateUserProfile: (userId: string, updateData: {
@@ -87,14 +130,23 @@ interface ProfileState {
   }) => Promise<void>;
   clearProfile: () => void;
   
-  // New functions
+  // Data fetching functions
   fetchRecentActivity: (userId: string, limit?: number) => Promise<void>;
-  fetchSubmissions: (userId: string, page?: number, limit?: number) => Promise<void>;
+  fetchAllActivities: (userId: string, page?: number, limit?: number) => Promise<void>;
+  fetchSubmissions: (userId: string, page?: number, limit?: number, timeRange?: string) => Promise<void>;
+  fetchCategories: () => Promise<void>;
   loadMoreSubmissions: () => void;
+  loadMoreActivities: () => void;
   handleGithubConnection: (userId: string, isConnected: boolean) => Promise<boolean>;
   
-  // Add new comprehensive data loading function
+  // Activity management
+  setActivitiesTimeRange: (timeRange: "week" | "month" | "year" | "all") => void;
+  setActivitiesType: (type: "all" | "challenge" | "contest" | "badge") => void;
+  
+  // Enhanced comprehensive data loading
   loadProfileData: (username: string) => Promise<void>;
+  loadStatisticsData: (userId: string, timeRange?: string) => Promise<void>;
+  setStatisticsTimeRange: (timeRange: "week" | "month" | "year" | "all") => void;
 }
 
 // Time threshold for refetching (5 minutes in milliseconds)
@@ -148,14 +200,29 @@ export const useProfileStore = create<ProfileState>()(
       recentActivity: [],
       activityLoading: false,
       
+      // All activities for activity page
+      allActivities: [],
+      allActivitiesLoading: false,
+      activitiesPage: 1,
+      hasMoreActivities: true,
+      activitiesLastFetched: 0,
+      activitiesTimeRange: "all",
+      activitiesType: "all",
+      
       // Submissions data
       submissions: [],
       submissionsLoading: false,
       submissionsPage: 1,
       hasMoreSubmissions: true,
-      
-      // Add new property for tracking submission fetch status
       submissionsLastFetched: 0,
+      
+      // Categories data
+      categories: {},
+      categoriesLoading: false,
+      categoriesLastFetched: 0,
+      
+      // Statistics
+      statisticsTimeRange: "month",
       
       fetchUserProfileById: async (userId: string) => {
         if (!userId) return;
@@ -314,12 +381,41 @@ export const useProfileStore = create<ProfileState>()(
         }
       },
       
-      fetchSubmissions: async (userId: string, page = 1, limit = 10) => {
+      fetchSubmissions: async (userId: string, page = 1, limit = 10, timeRange?: string) => {
         if (!userId) return;
         
         try {
           set({ submissionsLoading: true });
-          const response = await fetch(`/api/submissions?userId=${userId}&page=${page}&limit=${limit}`);
+          
+          // Build URL with time range filter
+          let url = `/api/submissions?userId=${userId}&page=${page}&limit=${limit}`;
+          if (timeRange && timeRange !== 'all') {
+            const now = new Date();
+            let fromDate: Date;
+            
+            switch (timeRange) {
+              case 'week':
+                fromDate = new Date(now);
+                fromDate.setDate(fromDate.getDate() - 7);
+                break;
+              case 'month':
+                fromDate = new Date(now);
+                fromDate.setMonth(fromDate.getMonth() - 1);
+                break;
+              case 'year':
+                fromDate = new Date(now);
+                fromDate.setFullYear(fromDate.getFullYear() - 1);
+                break;
+              default:
+                fromDate = new Date(0); // All time
+            }
+            
+            if (timeRange !== 'all') {
+              url += `&from=${fromDate.toISOString()}`;
+            }
+          }
+          
+          const response = await fetch(url);
           
           if (!response.ok) {
             throw new Error('Network response was not ok');
@@ -367,6 +463,41 @@ export const useProfileStore = create<ProfileState>()(
         } catch (error) {
           console.error("Error fetching submissions:", error);
           set({ submissionsLoading: false });
+        }
+      },
+
+      fetchCategories: async () => {
+        const currentTime = Date.now();
+        const state = get();
+        
+        // Only fetch if we don't have categories or they're stale
+        if (Object.keys(state.categories).length === 0 || 
+            currentTime - state.categoriesLastFetched > REFETCH_THRESHOLD) {
+          try {
+            set({ categoriesLoading: true });
+            const response = await fetch('/api/categories');
+            
+            if (!response.ok) {
+              throw new Error('Failed to fetch categories');
+            }
+            
+            const categoriesData = await response.json();
+            
+            // Convert categories array to lookup object
+            const categoriesLookup = categoriesData.reduce((acc: { [key: string]: string }, cat: any) => {
+              acc[cat.id] = cat.name;
+              return acc;
+            }, {});
+            
+            set({
+              categories: categoriesLookup,
+              categoriesLoading: false,
+              categoriesLastFetched: currentTime
+            });
+          } catch (error) {
+            console.error("Error fetching categories:", error);
+            set({ categoriesLoading: false });
+          }
         }
       },
       
@@ -418,7 +549,7 @@ export const useProfileStore = create<ProfileState>()(
         }
       },
       
-      // Add new comprehensive data loading function
+      // Enhanced comprehensive data loading function
       loadProfileData: async (username: string) => {
         if (!username) return;
         
@@ -440,17 +571,17 @@ export const useProfileStore = create<ProfileState>()(
             await get().fetchUserProfileByUsername(username);
           }
           
+          // Fetch categories in parallel
+          await get().fetchCategories();
+          
           // Only fetch submissions if we have userData
           const userData = get().userData;
           if (userData?.id && shouldReloadSubmissions) {
-            set({ submissionsLoading: true });
-            
-            // Fetch submissions and update streak
-            await get().fetchSubmissions(userData.id, 1);
-            set({ submissionsLastFetched: currentTime });
-            
-            // Fetch recent activity
-            await get().fetchRecentActivity(userData.id, 5);
+            // Fetch submissions and recent activity in parallel
+            await Promise.all([
+              get().fetchSubmissions(userData.id, 1),
+              get().fetchRecentActivity(userData.id, 5)
+            ]);
           }
         } catch (error) {
           console.error("Error loading profile data:", error);
@@ -459,6 +590,122 @@ export const useProfileStore = create<ProfileState>()(
             isLoading: false,
             submissionsLoading: false
           });
+        }
+      },
+
+      // Load statistics data with time range
+      loadStatisticsData: async (userId: string, timeRange?: string) => {
+        if (!userId) return;
+        
+        const currentTimeRange = timeRange || get().statisticsTimeRange;
+        
+        try {
+          // Fetch categories if we don't have them
+          await get().fetchCategories();
+          
+          // Fetch submissions with time range filter
+          await get().fetchSubmissions(userId, 1, 50, currentTimeRange); // Fetch more for statistics
+        } catch (error) {
+          console.error("Error loading statistics data:", error);
+          set({ 
+            error: error instanceof Error ? error.message : 'Failed to load statistics data',
+            submissionsLoading: false
+          });
+        }
+      },
+
+      // Set statistics time range and reload data
+      setStatisticsTimeRange: (timeRange: "week" | "month" | "year" | "all") => {
+        const { userData } = get();
+        set({ statisticsTimeRange: timeRange });
+        
+        // Reload submissions with new time range
+        if (userData?.id) {
+          get().loadStatisticsData(userData.id, timeRange);
+        }
+      },
+
+      // Fetch all activities with pagination
+      fetchAllActivities: async (userId: string, page = 1, limit = 20) => {
+        if (!userId) return;
+        
+        try {
+          set({ allActivitiesLoading: true });
+          
+          const { activitiesTimeRange, activitiesType } = get();
+          
+          // Build query parameters
+          let url = `/api/activity?userId=${userId}&page=${page}&limit=${limit}`;
+          if (activitiesTimeRange !== 'all') {
+            url += `&timeRange=${activitiesTimeRange}`;
+          }
+          if (activitiesType !== 'all') {
+            url += `&type=${activitiesType}`;
+          }
+          
+          const response = await fetch(url);
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch activities');
+          }
+          
+          const data = await response.json();
+          const currentTime = Date.now();
+          
+          if (page === 1) {
+            set({
+              allActivities: data.activities,
+              allActivitiesLoading: false,
+              hasMoreActivities: data.pagination.hasMore,
+              activitiesLastFetched: currentTime
+            });
+          } else {
+            const currentActivities = get().allActivities;
+            set({
+              allActivities: [...currentActivities, ...data.activities],
+              allActivitiesLoading: false,
+              hasMoreActivities: data.pagination.hasMore,
+              activitiesLastFetched: currentTime
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching activities:", error);
+          set({ allActivitiesLoading: false });
+        }
+      },
+
+      // Load more activities
+      loadMoreActivities: () => {
+        const { userData, activitiesPage } = get();
+        if (userData?.id) {
+          set({ activitiesPage: activitiesPage + 1 });
+          get().fetchAllActivities(userData.id, activitiesPage + 1);
+        }
+      },
+
+      // Set activities time range and reload
+      setActivitiesTimeRange: (timeRange: "week" | "month" | "year" | "all") => {
+        const { userData } = get();
+        set({ 
+          activitiesTimeRange: timeRange,
+          activitiesPage: 1 
+        });
+        
+        if (userData?.id) {
+          get().fetchAllActivities(userData.id, 1);
+        }
+      },
+
+      // Set activities type filter and reload
+      setActivitiesType: (type: "all" | "challenge" | "contest" | "badge") => {
+        const { userData } = get();
+        set({ 
+          activitiesType: type,
+          activitiesPage: 1 
+        });
+        
+        if (userData?.id) {
+          get().fetchAllActivities(userData.id, 1);
         }
       }
     }),

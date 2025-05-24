@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import React, { useEffect, useRef } from "react"
-import { Code, Award, MessageSquare, BarChart2, Terminal, Zap, Star } from "lucide-react"
+import { Code, Award, MessageSquare, BarChart2, Terminal, Zap, Star, Activity } from "lucide-react"
 import { useChallengesStore } from "@/lib/store"
 import { useTheme } from "@/context/ThemeContext"
 
@@ -31,17 +31,17 @@ const GridModel = ({ onClose }: GridModelProps) => {
     {
       title: "Challenges",
       items: [
+        { name: "All Challenges", icon: <Code className="w-4 h-4" />, href: "/challenge" },
         { name: "Algorithms", icon: <Code className="w-4 h-4" />, href: "/challenge/category/algorithm" },
         { name: "Data Structures", icon: <Terminal className="w-4 h-4" />, href: "/challenge/category/data-structure" },
-        { name: "System Design", icon: <BarChart2 className="w-4 h-4" />, href: "/challenge/category/system-design" },
       ],
     },
     {
       title: "Community",
       items: [
-        { name: "Forums", icon: <MessageSquare className="w-4 h-4" />, href: "/community/forums" },
-        { name: "Competitions", icon: <Zap className="w-4 h-4" />, href: "/community/competitions" },
+        { name: "Activity Feed", icon: <Activity className="w-4 h-4" />, href: "/activity" },
         { name: "Rankings", icon: <Award className="w-4 h-4" />, href: "/community/rankings" },
+        { name: "Competitions", icon: <Zap className="w-4 h-4" />, href: "/community/competitions" },
       ],
     },
   ]

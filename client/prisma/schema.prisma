@@ -55,7 +55,7 @@ model Activity {
     id              String      @id @default(cuid())
     userId          String
     user            User        @relation(fields: [userId], references: [id])
-    type            String
+    type            ActivityType
     name            String
     result          String
     points          Int
@@ -229,4 +229,11 @@ enum SubmissionStatus {
   MEMORY_LIMIT_EXCEEDED
   RUNTIME_ERROR
   COMPILATION_ERROR
+}
+
+enum ActivityType {
+  CHALLENGE
+  CONTEST
+  BADGE
+  DISCUSSION
 }

@@ -100,7 +100,7 @@ const Footer = () => {
                         <Code size={14} className="mr-2" />
                         <span>
                             Made with <Heart size={12} className="inline text-orange-500 mx-1" /> by{" "}
-                            <Link href="/profile" className="text-orange-500 hover:underline">
+                            <Link href="https://www.linkedin.com/in/vignaramtej/" className="text-orange-500 hover:underline">
                                 Vigna Ramtej Telagarapu
                             </Link>
                         </span>

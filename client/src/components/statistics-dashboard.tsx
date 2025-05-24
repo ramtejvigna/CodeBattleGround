@@ -42,6 +42,7 @@ import {
   Sector,
 } from "recharts"
 import { useTheme } from "@/context/ThemeContext"
+import { useProfileStore } from "@/lib/store/profileStore"
 
 // Interface definitions based on Prisma schema
 interface Language {
@@ -399,72 +400,32 @@ interface StatisticsDashboardProps {
 }
 
 const StatisticsDashboard = ({ userId }: StatisticsDashboardProps) => {
-  const [isLoading, setIsLoading] = useState(true)
-  const [timeRange, setTimeRange] = useState("month")
   const [activeTab, setActiveTab] = useState("activity")
   const [activePieIndex, setActivePieIndex] = useState(0)
-  const [submissions, setSubmissions] = useState<Submission[]>([])
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  const [categories, setCategories] = useState<{ [key: string]: string }>({})
-  const [error, setError] = useState<string | null>(null)
   const { theme } = useTheme()
 
-  // Fetch submissions data
+  // Use centralized store data instead of local state
+  const {
+    submissions,
+    submissionsLoading,
+    categories,
+    categoriesLoading,
+    userData,
+    error,
+    statisticsTimeRange,
+    setStatisticsTimeRange,
+    loadStatisticsData
+  } = useProfileStore()
+
+  // Load statistics data when component mounts or timeRange changes
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        // Fetch categories first to use in submissions processing
-        const categoriesResponse = await fetch(`/api/categories`)
-        if (!categoriesResponse.ok) throw new Error("Failed to fetch categories")
-        const categoriesData = await categoriesResponse.json()
-
-        // Convert categories array to lookup object
-        const categoriesLookup = categoriesData.reduce((acc: { [key: string]: string }, cat: any) => {
-          acc[cat.id] = cat.name
-          return acc
-        }, {})
-        setCategories(categoriesLookup)
-
-        // Fetch submissions with time range filter
-        let timeFilter = ""
-        const now = new Date()
-        if (timeRange === "week") {
-          const weekAgo = new Date(now)
-          weekAgo.setDate(weekAgo.getDate() - 7)
-          timeFilter = `&from=${weekAgo.toISOString()}`
-        } else if (timeRange === "month") {
-          const monthAgo = new Date(now)
-          monthAgo.setMonth(monthAgo.getMonth() - 1)
-          timeFilter = `&from=${monthAgo.toISOString()}`
-        } else if (timeRange === "year") {
-          const yearAgo = new Date(now)
-          yearAgo.setFullYear(yearAgo.getFullYear() - 1)
-          timeFilter = `&from=${yearAgo.toISOString()}`
-        }
-
-        const submissionsResponse = await fetch(`/api/users/${userId}/submissions?${timeFilter}`)
-        if (!submissionsResponse.ok) throw new Error("Failed to fetch submissions")
-        const submissionsData = await submissionsResponse.json()
-        setSubmissions(submissionsData)
-
-        // Fetch user profile
-        const profileResponse = await fetch(`/api/users/${userId}/profile`)
-        if (!profileResponse.ok) throw new Error("Failed to fetch user profile")
-        const profileData = await profileResponse.json()
-        setUserProfile(profileData)
-      } catch (err) {
-        console.error("Error fetching data:", err)
-        setError(err instanceof Error ? err.message : "An unknown error occurred")
-      } finally {
-        setIsLoading(false)
-      }
+    if (userId && statisticsTimeRange) {
+      loadStatisticsData(userId, statisticsTimeRange)
     }
+  }, [userId, statisticsTimeRange, loadStatisticsData])
 
-    fetchData()
-  }, [userId, timeRange])
+  // Combined loading state
+  const isLoading = submissionsLoading || categoriesLoading
 
   // Process submissions data
   const stats = useMemo(() => processSubmissionsData(submissions, categories), [submissions, categories])
@@ -514,7 +475,7 @@ const StatisticsDashboard = ({ userId }: StatisticsDashboardProps) => {
   }
 
   // Calculate streak data
-  const streakDays = userProfile?.streakDays || 0
+  const streakDays = userData?.userProfile?.streakDays || 0
 
   // Weekly progress data - calculate from submissions
   const weeklyProgress = useMemo(() => {
@@ -574,11 +535,6 @@ const StatisticsDashboard = ({ userId }: StatisticsDashboardProps) => {
       value: `${stats.avgRuntime} ms`,
       icon: <Clock className="h-5 w-5 text-blue-500" />,
     },
-    {
-      title: "Current Streak",
-      value: streakDays,
-      icon: <Zap className="h-5 w-5 text-purple-500" />,
-    },
   ]
 
   // Theme-aware chart colors
@@ -587,28 +543,9 @@ const StatisticsDashboard = ({ userId }: StatisticsDashboardProps) => {
 
   // Handle refresh
   const handleRefresh = () => {
-    setIsLoading(true)
-    // Re-fetch data by triggering the useEffect
-    const fetchData = async () => {
-      try {
-        const submissionsResponse = await fetch(`/api/users/${userId}/submissions?timeRange=${timeRange}`)
-        if (!submissionsResponse.ok) throw new Error("Failed to fetch submissions")
-        const submissionsData = await submissionsResponse.json()
-        setSubmissions(submissionsData)
-
-        const profileResponse = await fetch(`/api/users/${userId}/profile`)
-        if (!profileResponse.ok) throw new Error("Failed to fetch user profile")
-        const profileData = await profileResponse.json()
-        setUserProfile(profileData)
-      } catch (err) {
-        console.error("Error refreshing data:", err)
-        setError(err instanceof Error ? err.message : "An unknown error occurred")
-      } finally {
-        setIsLoading(false)
-      }
+    if (userId) {
+      loadStatisticsData(userId, statisticsTimeRange)
     }
-
-    fetchData()
   }
 
   if (error) {
@@ -636,7 +573,7 @@ const StatisticsDashboard = ({ userId }: StatisticsDashboardProps) => {
           <p className="text-muted-foreground mt-1">Track your coding progress and performance</p>
         </motion.div>
         <motion.div variants={itemVariants} className="flex items-center gap-2">
-          <Select value={timeRange} onValueChange={setTimeRange}>
+          <Select value={statisticsTimeRange} onValueChange={setStatisticsTimeRange}>
             <SelectTrigger className={`w-[180px] border-0 shadow-md ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}>
               <SelectValue placeholder="Select time range" />
             </SelectTrigger>
