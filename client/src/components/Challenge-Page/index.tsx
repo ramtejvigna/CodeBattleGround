@@ -153,25 +153,25 @@ function ChallengesContent() {
                 <TabsList className={`border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                     <TabsTrigger
                         value="all"
-                        className={`data-[state=active]:${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                        className={`data-[state=active]:[${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}]`}
                     >
                         All Challenges
                     </TabsTrigger>
                     <TabsTrigger
                         value="solved"
-                        className={`data-[state=active]:${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                        className={`data-[state=active]:[${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}]`}
                     >
                         Solved
                     </TabsTrigger>
                     <TabsTrigger
                         value="attempted"
-                        className={`data-[state=active]:${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                        className={`data-[state=active]:[${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}]`}
                     >
                         Attempted
                     </TabsTrigger>
                     <TabsTrigger
                         value="bookmarked"
-                        className={`data-[state=active]:${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                        className={`data-[state=active]:[${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}]`}
                     >
                         Bookmarked
                     </TabsTrigger>

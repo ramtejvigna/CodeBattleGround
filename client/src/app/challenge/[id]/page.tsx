@@ -3,26 +3,31 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
+import Split from "react-split"
 import { useTheme } from "@/context/ThemeContext"
 import { useProfileStore } from "@/lib/store/profileStore"
 import {
-  Award,
-  Clock,
-  Cpu,
+  ChevronLeft,
+  Heart,
+  Share,
+  Star,
+  ThumbsUp,
+  ThumbsDown,
+  Play,
+  Upload,
+  Settings,
+  RotateCcw,
   CheckCircle,
   XCircle,
-  Play,
-  Save,
-  RefreshCw,
-  ThumbsUp,
-  User,
-  Eye,
-  EyeOff,
+  Clock,
+  Database,
 } from "lucide-react"
 import Loader from "@/components/Loader"
 import CodeEditor from "@/components/CodeEditor"
 import Link from "next/link"
 import toast from "react-hot-toast"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Types
 interface TestCase {
@@ -38,6 +43,19 @@ interface Language {
   name: string
 }
 
+interface Submission {
+  id: string
+  code: string
+  status: string
+  runtime: number | null
+  memory: number | null
+  score: number
+  createdAt: string
+  language: {
+    name: string
+  }
+}
+
 interface Challenge {
   id: string
   title: string
@@ -47,6 +65,7 @@ interface Challenge {
   category: { name: string }
   testCases: TestCase[]
   likes: number
+  dislikes: number
   submissions: number
   timeLimit: number
   memoryLimit: number
@@ -73,9 +92,9 @@ interface TestResult {
 const ChallengePage = () => {
   const { id } = useParams()
   const { theme } = useTheme()
+  const { userData } = useProfileStore()
 
-  const { userData } = useProfileStore();
-
+  const isDark = theme === 'dark'
   // State
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [loading, setLoading] = useState(true)
@@ -88,7 +107,11 @@ const ChallengePage = () => {
   const [submissionStatus, setSubmissionStatus] = useState<string | null>(null)
   const [runtime, setRuntime] = useState<number | null>(null)
   const [memory, setMemory] = useState<number | null>(null)
-  const [showTestCases, setShowTestCases] = useState(true)
+  const [consoleHeight, setConsoleHeight] = useState(200)
+  const [isConsoleExpanded, setIsConsoleExpanded] = useState(false)
+  const [activeConsoleTab, setActiveConsoleTab] = useState("testcase")
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [submissionsLoading, setSubmissionsLoading] = useState(false)
 
   // Fetch challenge data
   useEffect(() => {
@@ -114,7 +137,6 @@ const ChallengePage = () => {
         const data = await response.json()
         setLanguages(data.languages)
 
-        // Set the default selected language to the first language
         if (data.languages.length > 0) {
           setSelectedLanguage(data.languages[0].name)
         }
@@ -131,12 +153,31 @@ const ChallengePage = () => {
     }
   }, [id])
 
+  // Fetch submissions for this challenge
+  const fetchSubmissions = async () => {
+    if (!id || !userData) return
+
+    setSubmissionsLoading(true)
+    try {
+      const response = await fetch(`/api/challenges/${id}/submissions`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setSubmissions(data.submissions)
+      } else {
+        console.error("Error fetching submissions:", data.error)
+      }
+    } catch (error) {
+      console.error("Error fetching submissions:", error)
+    } finally {
+      setSubmissionsLoading(false)
+    }
+  }
+
   // Handle language change
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const langName = e.target.value
     setSelectedLanguage(langName)
-
-    // Reset code when changing languages
     setCode("")
   }
 
@@ -148,6 +189,7 @@ const ChallengePage = () => {
     setTestResults(null)
     setRuntime(null)
     setMemory(null)
+    setActiveConsoleTab("testcase")
 
     try {
       const testCase = challenge.testCases.find((tc) => !tc.isHidden)
@@ -192,6 +234,7 @@ const ChallengePage = () => {
 
     setIsSubmitting(true)
     setSubmissionStatus(null)
+    setActiveConsoleTab("result")
 
     try {
       const response = await fetch("/api/execute", {
@@ -224,6 +267,9 @@ const ChallengePage = () => {
       } else {
         toast.error("Solution failed. Some test cases did not pass.")
       }
+
+      // Refresh submissions list after submission
+      await fetchSubmissions()
     } catch (error) {
       console.error("Error submitting solution:", error)
       toast.error("Failed to submit solution")
@@ -236,16 +282,85 @@ const ChallengePage = () => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "EASY":
-        return "bg-green-500 text-white"
+        return "text-green-600"
       case "MEDIUM":
-        return "bg-yellow-500 text-white"
+        return "text-yellow-600"
       case "HARD":
-        return "bg-orange-500 text-white"
+        return "text-red-600"
       case "EXPERT":
-        return "bg-red-500 text-white"
+        return "text-purple-600"
       default:
-        return "bg-gray-500 text-white"
+        return "text-gray-600"
     }
+  }
+
+  // Get submission status color and icon
+  const getSubmissionStatusStyles = (status: string) => {
+    switch (status) {
+      case "ACCEPTED":
+        return {
+          color: "text-green-600",
+          bg: isDark ? "bg-green-900/20" : "bg-green-50",
+          border: isDark ? "border-green-700" : "border-green-200",
+          icon: <CheckCircle className="w-4 h-4" />
+        }
+      case "WRONG_ANSWER":
+      case "FAILED":
+        return {
+          color: "text-red-600",
+          bg: isDark ? "bg-red-900/20" : "bg-red-50",
+          border: isDark ? "border-red-700" : "border-red-200",
+          icon: <XCircle className="w-4 h-4" />
+        }
+      case "TIME_LIMIT_EXCEEDED":
+        return {
+          color: "text-yellow-600",
+          bg: isDark ? "bg-yellow-900/20" : "bg-yellow-50",
+          border: isDark ? "border-yellow-700" : "border-yellow-200",
+          icon: <Clock className="w-4 h-4" />
+        }
+      default:
+        return {
+          color: isDark ? "text-gray-400" : "text-gray-600",
+          bg: isDark ? "bg-gray-800" : "bg-gray-50",
+          border: isDark ? "border-gray-700" : "border-gray-200",
+          icon: <XCircle className="w-4 h-4" />
+        }
+    }
+  }
+
+  // Format submission status for display
+  const formatSubmissionStatus = (status: string) => {
+    switch (status) {
+      case "ACCEPTED":
+        return "Accepted"
+      case "WRONG_ANSWER":
+        return "Wrong Answer"
+      case "FAILED":
+        return "Failed"
+      case "TIME_LIMIT_EXCEEDED":
+        return "Time Limit Exceeded"
+      case "MEMORY_LIMIT_EXCEEDED":
+        return "Memory Limit Exceeded"
+      case "RUNTIME_ERROR":
+        return "Runtime Error"
+      case "COMPILATION_ERROR":
+        return "Compilation Error"
+      default:
+        return status
+    }
+  }
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   // Get language-specific template code
@@ -253,41 +368,58 @@ const ChallengePage = () => {
     // Provide basic templates for common languages
     switch (language.toLowerCase()) {
       case "javascript":
-        return `// Write your JavaScript solution here
+        return `
+// Write your JavaScript solution here
 // Example:
+
 function solution(input) {
   // Your code here
   return output;
-}`
+}
+  `;
+
       case "python":
-        return `# Write your Python solution here
+        return `
+# Write your Python solution here
 # Example:
+
 def solution(input):
     # Your code here
-    return output`
+    return output
+  `;
+
       case "java":
-        return `// Write your Java solution here
+        return `
+// Write your Java solution here
 // Example:
+
 public class Solution {
     public static void main(String[] args) {
         // Your code here
     }
-}`
+}
+  `;
+
       case "c++":
       case "cpp":
-        return `// Write your C++ solution here
+        return `
+// Write your C++ solution here
 // Example:
+
 #include <iostream>
 using namespace std;
 
 int main() {
     // Your code here
     return 0;
-}`
+}
+  `;
+
       default:
-        return `// Write your solution here`
+        return `// Write your solution here`;
     }
-  }
+  };
+
 
   // Set template code when language changes
   useEffect(() => {
@@ -296,9 +428,17 @@ int main() {
     }
   }, [selectedLanguage, code])
 
+  // Fetch submissions when user data is available
+  useEffect(() => {
+    if (userData && id) {
+      fetchSubmissions()
+    }
+  }, [userData, id])
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className={`flex justify-center items-center h-screen transition-colors duration-200 ${isDark ? 'bg-gray-900' : 'bg-gray-50'
+        }`}>
         <Loader />
       </div>
     )
@@ -306,18 +446,21 @@ int main() {
 
   if (!challenge) {
     return (
-      <div className={`min-h-screen ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}>
+      <div className={`min-h-screen transition-colors duration-200 ${isDark ? 'bg-gray-900' : 'bg-gray-50'
+        }`}>
         <div className="container mx-auto px-4 py-16 text-center">
           <XCircle size={64} className="mx-auto mb-4 text-red-500" />
-          <h1 className={`text-3xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
+          <h1 className={`text-3xl font-bold mb-4 transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-800'
+            }`}>
             Challenge Not Found
           </h1>
-          <p className={`mb-8 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+          <p className={`mb-8 transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-600'
+            }`}>
             The challenge you're looking for doesn't exist or has been removed.
           </p>
           <Link
-            href="/challenges"
-            className="inline-block bg-gradient-to-tr from-[#F14A00] to-[#C62300] text-white py-2 px-6 rounded-lg hover:opacity-90 transition-opacity"
+            href="/challenge"
+            className="inline-block bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-200"
           >
             Back to Challenges
           </Link>
@@ -327,403 +470,587 @@ int main() {
   }
 
   return (
-    <div className={`min-h-screen ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}>
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Challenge Details */}
-          <div className="lg:col-span-1">
-            <div
-              className={`rounded-lg border ${
-                theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-              } shadow-sm overflow-hidden`}
-            >
-              <div className="p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <h1 className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
-                    {challenge.title}
-                  </h1>
-                </div>
+    <div className={`h-screen flex flex-col transition-colors duration-200 ${isDark
+        ? 'bg-gray-900 text-white'
+        : 'bg-gray-50 text-gray-900'
+      }`}>
 
-                <div className="flex items-center justify-between gap-2 mb-4">
-                  <div className="flex items-center gap-2">
-                    <User size={16} className={theme === "dark" ? "text-gray-400" : "text-gray-500"} />
-                    <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                      Created by {challenge.creator.username}
-                    </span>
-                  </div>
-                  
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyColor(challenge.difficulty)}`}
-                  >
-                    {challenge.difficulty.charAt(0) + challenge.difficulty.slice(1).toLowerCase()}
-                  </span>
-                </div>
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        <Split
+          sizes={[50, 50]}
+          minSize={[400, 400]}
+          gutterSize={8}
+          direction="horizontal"
+          className="flex h-full relative"
+          gutterStyle={() => ({
+            background: "linear-gradient(90deg, transparent 0%, rgba(148, 163, 184, 0.3) 50%, transparent 100%)",
+            width: "8px",
+            cursor: "col-resize",
+            border: "none",
+            outline: "none",
+            zIndex: "1",
+            transition: "all 0.2s ease",
+          })}
+        >
 
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="flex items-center gap-2">
-                    <Award size={16} className="text-yellow-500" />
-                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                      {challenge.points} Points
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ThumbsUp size={16} className="text-blue-500" />
-                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                      {challenge.likes} Likes
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock size={16} className="text-orange-500" />
-                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                      {challenge.timeLimit}s Time Limit
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Cpu size={16} className="text-purple-500" />
-                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                      {challenge.memoryLimit}MB Memory
-                    </span>
-                  </div>
-                </div>
+          {/* Left Panel - Problem Description */}
+          <div className={`overflow-hidden flex flex-col transition-colors duration-200 ${isDark ? 'bg-gray-800' : 'bg-white'
+            }`}>
 
-                <div className={`p-4 rounded-lg mb-6 ${theme === "dark" ? "bg-gray-700" : "bg-gray-100"}`}>
-                  <h3 className={`font-semibold mb-2 ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
-                    Description
-                  </h3>
-                  <div className={`prose prose-sm max-w-none ${theme === "dark" ? "prose-invert text-gray-300" : "text-gray-700"}`}>
-                    <div dangerouslySetInnerHTML={{ __html: challenge.description }} />
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
-                      Test Cases
-                    </h3>
-                    <button
-                      onClick={() => setShowTestCases(!showTestCases)}
-                      className={`text-sm flex items-center gap-1 ${
-                        theme === "dark" ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"
+            {/* Header */}
+            <div className={`border-b transition-colors duration-200 px-4 py-3 ${isDark
+                ? 'border-gray-700 bg-gray-800'
+                : 'border-gray-200 bg-white'
+              }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <Link
+                    href="/challenges"
+                    className={`transition-colors duration-200 ${isDark
+                        ? 'text-gray-400 hover:text-gray-200'
+                        : 'text-gray-600 hover:text-gray-800'
                       }`}
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </Link>
+                  <div className="flex items-center space-x-3">
+                    <h1 className={`text-lg font-medium transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-900'
+                      }`}>
+                      {challenge.title}
+                    </h1>
+                    <span className={`text-sm font-medium ${getDifficultyColor(challenge.difficulty)}`}>
+                      {challenge.difficulty}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <Tabs defaultValue="description" className="w-full">
+                <div className={`border-b px-4 transition-colors duration-200 ${isDark ? 'border-gray-700' : 'border-gray-200'
+                  }`}>
+                  <TabsList className="bg-transparent h-12 p-0 space-x-6">
+                    <TabsTrigger
+                      value="description"
+                      className={`border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none px-0 py-3 text-sm font-medium transition-colors duration-200 ${isDark
+                          ? 'text-gray-300 bg-gray-800 data-[state=active]:text-blue-400'
+                          : 'text-gray-600 bg-white data-[state=active]:text-blue-600'
+                        }`}
                     >
-                      {showTestCases ? (
-                        <>
-                          <EyeOff size={14} />
-                          <span>Hide</span>
-                        </>
-                      ) : (
-                        <>
-                          <Eye size={14} />
-                          <span>Show</span>
-                        </>
-                      )}
-                    </button>
+                      Description
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="solutions"
+                      className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none px-0 py-3 text-sm font-medium transition-colors duration-200 ${isDark
+                          ? 'text-gray-300 bg-gray-800 data-[state=active]:text-blue-400'
+                          : 'text-gray-600 bg-white data-[state=active]:text-blue-600'
+                        }`}
+                    >
+                      Solutions
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="submissions"
+                      className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none px-0 py-3 text-sm font-medium transition-colors duration-200 ${isDark
+                          ? 'text-gray-300 bg-gray-800 data-[state=active]:text-blue-400'
+                          : 'text-gray-600 bg-white data-[state=active]:text-blue-600'
+                        }`}
+                    >
+                      Submissions
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <TabsContent value="description" className="p-4 space-y-6">
+                  {/* Problem Stats */}
+                  <div className={`flex items-center space-x-6 text-sm transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                    <div className="flex items-center space-x-1">
+                      <ThumbsUp className="w-4 h-4" />
+                      <span>{challenge.likes}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <ThumbsDown className="w-4 h-4" />
+                      <span>{challenge.dislikes || 0}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Star className="w-4 h-4" />
+                      <span>Add to List</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Share className="w-4 h-4" />
+                      <span>Share</span>
+                    </div>
                   </div>
 
-                  {showTestCases && (
-                    <div className="space-y-3">
-                      {challenge.testCases
-                        .filter((tc) => !tc.isHidden)
-                        .map((testCase, index) => (
-                          <div
-                            key={index}
-                            className={`p-3 rounded-lg text-sm ${
-                              theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            <div className="mb-2">
-                              <span className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
+                  {/* Problem Description */}
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <div className={`leading-relaxed transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                      {challenge.description}
+                    </div>
+                  </div>
+
+                  {/* Examples */}
+                  <div className="space-y-4">
+                    {challenge.testCases
+                      .filter((tc) => !tc.isHidden)
+                      .map((testCase, index) => (
+                        <div key={testCase.id} className="space-y-2">
+                          <h4 className={`font-medium transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-900'
+                            }`}>
+                            Example {index + 1}:
+                          </h4>
+                          <div className={`rounded-lg p-3 space-y-2 transition-colors duration-200 ${isDark ? 'bg-gray-700' : 'bg-gray-50'
+                            }`}>
+                            <div className="space-x-2">
+                              <span className={`font-medium transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
                                 Input:
                               </span>
-                              <pre
-                                className={`mt-1 p-2 rounded ${
-                                  theme === "dark" ? "bg-gray-800 text-gray-300" : "bg-white text-gray-800"
-                                } overflow-x-auto`}
-                              >
+                              <code className={`text-sm font-mono transition-colors duration-200 ${isDark ? 'text-gray-100' : 'text-gray-900'
+                                }`}>
                                 {testCase.input}
-                              </pre>
+                              </code>
                             </div>
-                            <div>
-                              <span className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
-                                Expected Output:
+                            <div className="space-x-2">
+                              <span className={`font-medium transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                Output:
                               </span>
-                              <pre
-                                className={`mt-1 p-2 rounded ${
-                                  theme === "dark" ? "bg-gray-800 text-gray-300" : "bg-white text-gray-800"
-                                } overflow-x-auto`}
-                              >
+                              <code className={`text-sm font-mono transition-colors duration-200 ${isDark ? 'text-gray-100' : 'text-gray-900'
+                                }`}>
                                 {testCase.output}
-                              </pre>
+                              </code>
                             </div>
                             {testCase.explanation && (
-                              <div className={`mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                                <span className="font-medium">Explanation:</span>
-                                <p className="mt-1">{testCase.explanation}</p>
+                              <div className="space-x-2">
+                                <span className={`font-medium transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
+                                  }`}>
+                                  Explanation:
+                                </span>
+                                <span className={`text-sm transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
+                                  }`}>
+                                  {testCase.explanation}
+                                </span>
                               </div>
                             )}
                           </div>
-                        ))}
-                      {challenge.testCases.some((tc) => tc.isHidden) && (
-                        <div
-                          className={`p-3 rounded-lg text-sm ${
-                            theme === "dark" ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-500"
-                          }`}
+                        </div>
+                      ))}
+                  </div>
+
+                  {/* Constraints */}
+                  <div className="space-y-2">
+                    <h4 className={`font-medium transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-900'
+                      }`}>
+                      Constraints:
+                    </h4>
+                    <ul className={`text-sm space-y-1 transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                      <li>• Time limit: {challenge.timeLimit}ms</li>
+                      <li>• Memory limit: {challenge.memoryLimit}MB</li>
+                      <li>• 1 ≤ input.length ≤ 10^4</li>
+                    </ul>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="editorial" className="p-4">
+                  <div className={`text-center py-8 transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                    Editorial content coming soon...
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="solutions" className="p-4">
+                  <div className={`text-center py-8 transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                    Community solutions coming soon...
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="submissions" className="p-4">
+                  {submissionsLoading ? (
+                    <div className="flex justify-center py-8">
+                      <RotateCcw className={`w-6 h-6 animate-spin transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-500'
+                        }`} />
+                    </div>
+                  ) : submissions.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className={`text-lg font-medium transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-900'
+                          }`}>
+                          Your Submissions ({submissions.length})
+                        </h3>
+                        <Button
+                          onClick={fetchSubmissions}
+                          variant="ghost"
+                          size="sm"
+                          className={`transition-colors duration-200 ${isDark
+                              ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                            }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <EyeOff size={14} />
-                            <span>There are hidden test cases that will be used to evaluate your solution.</span>
-                          </div>
-                        </div>
-                      )}
+                          <RotateCcw className="w-4 h-4 mr-1" />
+                          Refresh
+                        </Button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {submissions.map((submission) => {
+                          const statusStyles = getSubmissionStatusStyles(submission.status);
+                          return (
+                            <div
+                              key={submission.id}
+                              className={`border rounded-lg p-4 transition-colors duration-200 ${statusStyles.border} ${statusStyles.bg}`}
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-3">
+                                  <div className="flex items-center space-x-2">
+                                    {statusStyles.icon}
+                                    <span className={`font-medium ${statusStyles.color}`}>
+                                      {formatSubmissionStatus(submission.status)}
+                                    </span>
+                                  </div>
+                                  <span className={`text-sm transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
+                                    }`}>
+                                    {submission.language.name}
+                                  </span>
+                                </div>
+                                <span className={`text-xs transition-colors duration-200 ${isDark ? 'text-gray-500' : 'text-gray-500'
+                                  }`}>
+                                  {formatDate(submission.createdAt)}
+                                </span>
+                              </div>
+
+                              {(submission.runtime !== null || submission.memory !== null) && (
+                                <div className={`flex items-center space-x-6 text-sm mb-3 transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
+                                  }`}>
+                                  {submission.runtime !== null && (
+                                    <div className="flex items-center space-x-1">
+                                      <Clock className="w-4 h-4" />
+                                      <span>Runtime: {submission.runtime}ms</span>
+                                    </div>
+                                  )}
+                                  {submission.memory !== null && (
+                                    <div className="flex items-center space-x-1">
+                                      <Database className="w-4 h-4" />
+                                      <span>Memory: {submission.memory}MB</span>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center space-x-1">
+                                    <Star className="w-4 h-4" />
+                                    <span>Score: {submission.score}%</span>
+                                  </div>
+                                </div>
+                              )}
+
+                              <details className="group">
+                                <summary className={`cursor-pointer text-sm font-medium transition-colors duration-200 ${isDark
+                                    ? 'text-blue-400 hover:text-blue-300'
+                                    : 'text-blue-600 hover:text-blue-800'
+                                  }`}>
+                                  View Code
+                                </summary>
+                                <div className={`mt-3 p-3 rounded border transition-colors duration-200 ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                                  }`}>
+                                  <pre className={`text-xs font-mono overflow-x-auto whitespace-pre-wrap transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
+                                    }`}>
+                                    {submission.code}
+                                  </pre>
+                                </div>
+                              </details>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Upload className={`w-12 h-12 mx-auto mb-4 transition-colors duration-200 ${isDark ? 'text-gray-500' : 'text-gray-400'
+                        }`} />
+                      <h3 className={`text-lg font-medium mb-2 transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-900'
+                        }`}>
+                        No Submissions Yet
+                      </h3>
+                      <p className={`mb-4 transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                        Submit your solution to see your submission history here.
+                      </p>
+                      <Button
+                        onClick={() => document.querySelector('[data-tab="code"]')?.scrollIntoView({ behavior: 'smooth' })}
+                        className={`transition-colors duration-200 ${isDark
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          }`}
+                      >
+                        Start Coding
+                      </Button>
                     </div>
                   )}
-                </div>
-              </div>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
 
-          {/* Code Editor and Results */}
-          <div className="lg:col-span-2">
-            <div
-              className={`rounded-lg border ${
-                theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-              } shadow-sm overflow-hidden mb-6`}
-            >
-              <div className={`p-4 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"} flex justify-between items-center`}>
-                <div className="flex items-center gap-4">
-                  <select
-                    value={selectedLanguage}
-                    onChange={handleLanguageChange}
-                    className={`border rounded py-1 px-3 text-sm ${
-                      theme === "dark"
-                        ? "bg-gray-700 border-gray-600 text-gray-200"
-                        : "bg-white border-gray-300 text-gray-700"
-                    } focus:outline-none focus:ring-2 focus:ring-orange-500`}
-                  >
-                    {languages.map((lang) => (
-                      <option key={lang.id} value={lang.name}>
-                        {lang.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleRunCode}
-                    disabled={isRunning || !code}
-                    className={`flex items-center gap-1 py-1 px-3 rounded text-sm ${
-                      isRunning || !code ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
-                    } bg-green-600 text-white transition-opacity`}
-                  >
-                    {isRunning ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-                    <span>Run Code</span>
-                  </button>
-
-                  <button
-                    onClick={handleSubmitSolution}
-                    disabled={isSubmitting || !code || !userData}
-                    className={`flex items-center gap-1 py-1 px-3 rounded text-sm ${
-                      isSubmitting || !code || !userData ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
-                    } bg-gradient-to-tr from-[#F14A00] to-[#C62300] text-white transition-opacity`}
-                  >
-                    {isSubmitting ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
-                    <span>Submit</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="h-[500px]">
-                <CodeEditor
-                  value={code}
-                  onChange={setCode}
-                  language={selectedLanguage?.toLowerCase()}
-                  theme={theme === "dark" ? "vs-dark" : "light"}
-                />
+          {/* Right Panel - Code Editor */}
+          <div className={`overflow-hidden flex flex-col transition-colors duration-200 ${isDark ? 'bg-gray-800' : 'bg-white'
+            }`}>
+            {/* Code Editor Header */}
+            <div className={`border-b px-4 py-3 transition-colors duration-200 ${isDark ? 'border-gray-700' : 'border-gray-200'
+              }`}>
+              <div className="flex items-center justify-between">
+                <select
+                  value={selectedLanguage}
+                  onChange={handleLanguageChange}
+                  className={`px-3 py-1 border rounded text-sm transition-colors duration-200 ${isDark
+                      ? 'border-gray-600 bg-gray-700 text-white focus:border-blue-500'
+                      : 'border-gray-300 bg-white text-gray-900 focus:border-blue-500'
+                    }`}
+                >
+                  {languages.map((lang) => (
+                    <option key={lang.id} value={lang.name}>
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            {/* Test Results */}
-            {testResults && (
-              <div
-                className={`rounded-lg border ${
-                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-                } shadow-sm overflow-hidden mb-6`}
+            {/* Code Editor */}
+            <div className="flex-1 overflow-hidden w-full h-full">
+              <Split
+                sizes={[50, 50]}
+                direction="vertical"
+                minSize={[200, 150]}
+                gutterSize={8}
+                className="flex flex-col h-full relative"
+                gutterStyle={() => ({
+                  background: "linear-gradient(0deg, transparent 0%, rgba(148, 163, 184, 0.3) 50%, transparent 100%)",
+                  height: "8px",
+                  cursor: "row-resize",
+                  border: "none",
+                  outline: "none",
+                  zIndex: "1",
+                  transition: "all 0.2s ease",
+                })}
               >
-                <div className={`p-4 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
-                  <h3 className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Test Results</h3>
+                {/* Code Editor Pane */}
+                < div className="overflow-hidden">
+                  <CodeEditor
+                    value={code}
+                    onChange={setCode}
+                    language={selectedLanguage?.toLowerCase() || "javascript"}
+                    theme={theme === "dark" ? "vs-dark" : "vs-light"}
+                    height="100%"
+                  />
                 </div>
 
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Clock size={16} className="text-blue-500" />
-                        <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                          Runtime: {runtime}ms
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Cpu size={16} className="text-purple-500" />
-                        <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                          Memory: {memory}KB
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          testResults.every((r) => r.passed)
-                            ? theme === "dark"
-                              ? "bg-green-900 text-green-300"
-                              : "bg-green-100 text-green-800"
-                            : theme === "dark"
-                              ? "bg-red-900 text-red-300"
-                              : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {testResults.every((r) => r.passed) ? "All Tests Passed" : "Some Tests Failed"}
-                      </span>
+                {/* Console */}
+                <div className={`border-t flex flex-col transition-colors duration-200 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                  }`}>
+                  {/* Console Header */}
+                  <div className={`border-b px-4 py-2 transition-colors duration-200 ${isDark ? 'border-gray-700' : 'border-gray-200'
+                    }`}>
+                    <div className="flex items-center justify-between">
+                      <Tabs value={activeConsoleTab} onValueChange={setActiveConsoleTab} className="w-full">
+                        <div className="flex items-center justify-between">
+                          <TabsList className="bg-transparent h-8 p-0 space-x-4">
+                            <TabsTrigger
+                              value="testcase"
+                              className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent rounded-none px-0 py-1 text-xs font-medium transition-colors duration-200 ${isDark
+                                  ? 'text-gray-300 data-[state=active]:text-blue-400'
+                                  : 'text-gray-600 data-[state=active]:text-blue-600'
+                                }`}
+                            >
+                              Testcase
+                            </TabsTrigger>
+                            <TabsTrigger
+                              value="result"
+                              className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent rounded-none px-0 py-1 text-xs font-medium transition-colors duration-200 ${isDark
+                                  ? 'text-gray-300 data-[state=active]:text-blue-400'
+                                  : 'text-gray-600 data-[state=active]:text-blue-600'
+                                }`}
+                            >
+                              Test Result
+                            </TabsTrigger>
+                          </TabsList>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              onClick={handleRunCode}
+                              disabled={isRunning || !code.trim()}
+                              size="sm"
+                              className={`h-7 px-3 text-xs transition-colors duration-200 ${isDark
+                                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:bg-gray-800 disabled:text-gray-500'
+                                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:bg-gray-50 disabled:text-gray-400'
+                                }`}
+                            >
+                              {isRunning ? (
+                                <RotateCcw className="w-3 h-3 mr-1 animate-spin" />
+                              ) : (
+                                <Play className="w-3 h-3 mr-1" />
+                              )}
+                              Run
+                            </Button>
+                            <Button
+                              onClick={handleSubmitSolution}
+                              disabled={isSubmitting || !code.trim()}
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white h-7 px-3 text-xs disabled:bg-green-400 transition-colors duration-200"
+                            >
+                              {isSubmitting ? (
+                                <RotateCcw className="w-3 h-3 mr-1 animate-spin" />
+                              ) : (
+                                <Upload className="w-3 h-3 mr-1" />
+                              )}
+                              Submit
+                            </Button>
+                          </div>
+                        </div>
+                      </Tabs>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    {testResults.map((result, index) => (
-                      <div
-                        key={index}
-                        className={`p-3 rounded-lg border ${
-                          result.passed
-                            ? theme === "dark"
-                              ? "border-green-700 bg-green-900/20"
-                              : "border-green-200 bg-green-50"
-                            : theme === "dark"
-                              ? "border-red-700 bg-red-900/20"
-                              : "border-red-200 bg-red-50"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
-                            Test Case #{index + 1}
-                          </span>
-                          {result.passed ? (
-                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                              <CheckCircle size={16} />
-                              <span>Passed</span>
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
-                              <XCircle size={16} />
-                              <span>Failed</span>
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <div className={`font-medium mb-1 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                              Input:
-                            </div>
-                            <pre
-                              className={`mt-1 p-2 rounded ${
-                                theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-800"
-                              } overflow-x-auto`}
-                            >
-                              {result.input}
-                            </pre>
-                          </div>
-
-                          <div>
-                            <div className={`font-medium mb-1 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                              Expected Output:
-                            </div>
-                            <pre
-                              className={`mt-1 p-2 rounded ${
-                                theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-800"
-                              } overflow-x-auto`}
-                            >
-                              {result.expectedOutput}
-                            </pre>
-
-                            {!result.passed && (
-                              <div className="mt-2">
-                                <div className={`font-medium mb-1 ${
-                                  theme === "dark" ? "text-red-400" : "text-red-600"
-                                }`}>
-                                  Your Output:
+                  {/* Console Content */}
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <Tabs value={activeConsoleTab} className="w-full">
+                      <TabsContent value="testcase" className="mt-0">
+                        {challenge.testCases
+                          .filter((tc) => !tc.isHidden)
+                          .slice(0, 1)
+                          .map((testCase, index) => (
+                            <div key={testCase.id} className="space-y-3">
+                              <div>
+                                <label className={`text-xs font-medium transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
+                                  }`}>
+                                  Input:
+                                </label>
+                                <div className={`mt-1 p-2 rounded text-sm font-mono transition-colors duration-200 ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-800'
+                                  }`}>
+                                  {testCase.input}
                                 </div>
-                                <pre
-                                  className={`p-2 rounded ${
-                                    theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-800"
-                                  } overflow-x-auto`}
-                                >
-                                  {result.actualOutput}
-                                </pre>
+                              </div>
+                              <div>
+                                <label className={`text-xs font-medium transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
+                                  }`}>
+                                  Expected Output:
+                                </label>
+                                <div className={`mt-1 p-2 rounded text-sm font-mono transition-colors duration-200 ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-800'
+                                  }`}>
+                                  {testCase.output}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </TabsContent>
+
+                      <TabsContent value="result" className="mt-0">
+                        {submissionStatus && (
+                          <div
+                            className={`mb-4 p-3 rounded-lg flex items-center space-x-2 transition-colors duration-200 ${submissionStatus === "ACCEPTED"
+                                ? isDark
+                                  ? "bg-green-900/30 text-green-300 border border-green-700"
+                                  : "bg-green-50 text-green-800 border border-green-200"
+                                : isDark
+                                  ? "bg-red-900/30 text-red-300 border border-red-700"
+                                  : "bg-red-50 text-red-800 border border-red-200"
+                              }`}
+                          >
+                            {submissionStatus === "ACCEPTED" ? (
+                              <CheckCircle className="w-5 h-5" />
+                            ) : (
+                              <XCircle className="w-5 h-5" />
+                            )}
+                            <span className="font-medium">
+                              {submissionStatus === "ACCEPTED" ? "Accepted" : "Wrong Answer"}
+                            </span>
+                          </div>
+                        )}
+
+                        {testResults && (
+                          <div className="space-y-4">
+                            {runtime !== null && memory !== null && (
+                              <div className={`flex items-center space-x-6 text-sm transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="w-4 h-4" />
+                                  <span>Runtime: {runtime}ms</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <Database className="w-4 h-4" />
+                                  <span>Memory: {memory}MB</span>
+                                </div>
                               </div>
                             )}
+
+                            <div className="space-y-2">
+                              {testResults.map((result, index) => (
+                                <div
+                                  key={index}
+                                  className={`p-3 rounded border-l-4 transition-colors duration-200 ${result.passed
+                                      ? isDark
+                                        ? "border-l-green-500 bg-green-900/20 text-green-300"
+                                        : "border-l-green-500 bg-green-50 text-green-800"
+                                      : isDark
+                                        ? "border-l-red-500 bg-red-900/20 text-red-300"
+                                        : "border-l-red-500 bg-red-50 text-red-800"
+                                    }`}
+                                >
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    {result.passed ? (
+                                      <CheckCircle className="w-4 h-4 text-green-600" />
+                                    ) : (
+                                      <XCircle className="w-4 h-4 text-red-600" />
+                                    )}
+                                    <span className="text-sm font-medium">Test Case {index + 1}</span>
+                                  </div>
+                                  {!result.passed && (
+                                    <div className="space-y-2 text-xs">
+                                      <div>
+                                        <span className="font-medium">Input: </span>
+                                        <code className={`px-1 rounded transition-colors duration-200 ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'
+                                          }`}>
+                                          {result.input}
+                                        </code>
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Expected: </span>
+                                        <code className={`px-1 rounded transition-colors duration-200 ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'
+                                          }`}>
+                                          {result.expectedOutput}
+                                        </code>
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Actual: </span>
+                                        <code className={`px-1 rounded transition-colors duration-200 ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'
+                                          }`}>
+                                          {result.actualOutput}
+                                        </code>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                        )}
+
+                        {!testResults && !submissionStatus && (
+                          <div className={`text-center py-8 text-sm transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                            Run your code to see results here
+                          </div>
+                        )}
+                      </TabsContent>
+                    </Tabs>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Submission Status */}
-            {submissionStatus && (
-              <div
-                className={`rounded-lg border p-4 mb-6 ${
-                  submissionStatus === "ACCEPTED"
-                    ? theme === "dark"
-                      ? "bg-green-900/20 border-green-700"
-                      : "bg-green-50 border-green-200"
-                    : theme === "dark"
-                      ? "bg-red-900/20 border-red-700"
-                      : "bg-red-50 border-red-200"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {submissionStatus === "ACCEPTED" ? (
-                    <>
-                      <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
-                      <div>
-                        <h3 className={`font-semibold ${
-                          theme === "dark" ? "text-green-400" : "text-green-600"
-                        }`}>
-                          Solution Accepted!
-                        </h3>
-                        <p className={`text-sm ${
-                          theme === "dark" ? "text-gray-300" : "text-gray-700"
-                        }`}>
-                          Congratulations! Your solution passed all test cases.
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle size={20} className="text-red-600 dark:text-red-400" />
-                      <div>
-                        <h3 className={`font-semibold ${
-                          theme === "dark" ? "text-red-400" : "text-red-600"
-                        }`}>
-                          Solution Failed
-                        </h3>
-                        <p className={`text-sm ${
-                          theme === "dark" ? "text-gray-300" : "text-gray-700"
-                        }`}>
-                          Your solution did not pass all test cases. Please try again.
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+              </Split>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </Split >
+      </div >
+    </div >
   )
 }
 
