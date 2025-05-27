@@ -20,7 +20,7 @@ const GridModel = () => {
             title: "Challenges",
             icon: <Zap className="h-6 w-6 text-orange-400" />,
             description: "Test your skills with coding challenges",
-            url: "/challenges"
+            url: "/challenge"
         },
         {
             title: "Tournaments",

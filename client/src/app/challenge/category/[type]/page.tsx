@@ -363,7 +363,7 @@ export default function ChallengesPage() {
                     </p>
                     <Button 
                         className="mt-6 bg-orange-600 hover:bg-orange-700 text-white"
-                        onClick={() => window.location.href = '/challenges'}
+                        onClick={() => window.location.href = '/challenge'}
                     >
                         Explore Challenges
                     </Button>

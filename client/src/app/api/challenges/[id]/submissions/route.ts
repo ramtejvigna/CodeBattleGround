@@ -4,10 +4,18 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 export async function GET(
-    req: NextRequest,
-    { params }: { params: { id: string } }
+    req: NextRequest
 ) {
     try {
+        const challengeId = req.nextUrl.searchParams.get('id');
+
+        if (!challengeId) {
+            return NextResponse.json(
+                { error: 'Challenge ID is required' },
+                { status: 400 }
+            );
+        }
+
         const session = await getServerSession(authOptions);
 
         if (!session || !session.user) {
@@ -17,16 +25,6 @@ export async function GET(
             );
         }
 
-        const challengeId = params.id;
-
-        if (!challengeId) {
-            return NextResponse.json(
-                { error: 'Challenge ID is required' },
-                { status: 400 }
-            );
-        }
-
-        // Get user from session
         const user = await prisma.user.findUnique({
             where: { id: session.user.id },
             select: { id: true },
@@ -39,11 +37,10 @@ export async function GET(
             );
         }
 
-        // Fetch submissions for this user and challenge
         const submissions = await prisma.submission.findMany({
             where: {
                 userId: user.id,
-                challengeId: challengeId
+                challengeId
             },
             orderBy: { createdAt: 'desc' },
             include: {
@@ -64,4 +61,4 @@ export async function GET(
             { status: 500 }
         );
     }
-} 
+}

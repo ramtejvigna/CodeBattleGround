@@ -397,7 +397,7 @@ const ProfileContent = () => {
                                         <h3 className={`text-lg font-medium ${textColor}`}>No Recent Activity</h3>
                                         <button
                                             className="mt-4 px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white text-sm font-medium transition-colors"
-                                            onClick={() => window.location.href = '/challenges'}
+                                            onClick={() => window.location.href = '/challenge'}
                                         >
                                             Explore Challenges
                                         </button>
@@ -538,7 +538,7 @@ const ProfileContent = () => {
                                 </p>
                                 <button
                                     className="mt-6 px-5 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white font-medium transition-colors"
-                                    onClick={() => window.location.href = '/challenges'}
+                                    onClick={() => window.location.href = '/challenge'}
                                 >
                                     Explore Challenges
                                 </button>
@@ -626,7 +626,7 @@ const ProfileContent = () => {
                                 </p>
                                 <button
                                     className="mt-6 px-5 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white font-medium transition-colors"
-                                    onClick={() => window.location.href = '/challenges'}
+                                    onClick={() => window.location.href = '/challenge'}
                                 >
                                     Find Challenges
                                 </button>

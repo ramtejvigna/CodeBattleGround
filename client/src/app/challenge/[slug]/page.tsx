@@ -8,14 +8,12 @@ import { useTheme } from "@/context/ThemeContext"
 import { useProfileStore } from "@/lib/store/profileStore"
 import {
   ChevronLeft,
-  Heart,
   Share,
   Star,
   ThumbsUp,
   ThumbsDown,
   Play,
   Upload,
-  Settings,
   RotateCcw,
   CheckCircle,
   XCircle,
@@ -59,6 +57,7 @@ interface Submission {
 interface Challenge {
   id: string
   title: string
+  slug: string
   description: string
   difficulty: "EASY" | "MEDIUM" | "HARD" | "EXPERT"
   points: number
@@ -89,12 +88,24 @@ interface TestResult {
   memory?: number
 }
 
+// Helper function to extract ID from slug
+const extractIdFromSlug = (slug: string): string => {
+  // Assuming slug format is "challenge-title-slug-{id}"
+  const parts = slug.split("-")
+  const lastPart = parts[parts.length - 1]
+
+  return lastPart;
+}
+
 const ChallengePage = () => {
-  const { id } = useParams()
+  const { slug } = useParams()
   const { theme } = useTheme()
   const { userData } = useProfileStore()
 
-  const isDark = theme === 'dark'
+  // Extract ID from slug
+  const challengeId = slug ? extractIdFromSlug(slug as string) : null
+
+  const isDark = theme === "dark"
   // State
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [loading, setLoading] = useState(true)
@@ -116,12 +127,20 @@ const ChallengePage = () => {
   // Fetch challenge data
   useEffect(() => {
     const fetchChallenge = async () => {
+      if (!challengeId) return
+
       try {
-        const response = await fetch(`/api/challenges/${id}`)
+        const response = await fetch(`/api/challenges/${challengeId}`)
         const data = await response.json()
 
         if (data.id) {
           setChallenge(data)
+
+          // Verify the slug matches the challenge
+          if (data.slug && slug !== data.slug) {
+            // Redirect to correct slug if it doesn't match
+            window.history.replaceState(null, "", `/challenge/${data.slug}`)
+          }
         }
       } catch (error) {
         console.error("Error fetching challenge:", error)
@@ -147,19 +166,19 @@ const ChallengePage = () => {
       }
     }
 
-    if (id) {
+    if (challengeId) {
       fetchLanguages()
       fetchChallenge()
     }
-  }, [id])
+  }, [challengeId, slug])
 
   // Fetch submissions for this challenge
   const fetchSubmissions = async () => {
-    if (!id || !userData) return
+    if (!challengeId || !userData) return
 
     setSubmissionsLoading(true)
     try {
-      const response = await fetch(`/api/challenges/${id}/submissions`)
+      const response = await fetch(`/api/challenges/${challengeId}/submissions`)
       const data = await response.json()
 
       if (response.ok) {
@@ -302,7 +321,7 @@ const ChallengePage = () => {
           color: "text-green-600",
           bg: isDark ? "bg-green-900/20" : "bg-green-50",
           border: isDark ? "border-green-700" : "border-green-200",
-          icon: <CheckCircle className="w-4 h-4" />
+          icon: <CheckCircle className="w-4 h-4" />,
         }
       case "WRONG_ANSWER":
       case "FAILED":
@@ -310,21 +329,21 @@ const ChallengePage = () => {
           color: "text-red-600",
           bg: isDark ? "bg-red-900/20" : "bg-red-50",
           border: isDark ? "border-red-700" : "border-red-200",
-          icon: <XCircle className="w-4 h-4" />
+          icon: <XCircle className="w-4 h-4" />,
         }
       case "TIME_LIMIT_EXCEEDED":
         return {
           color: "text-yellow-600",
           bg: isDark ? "bg-yellow-900/20" : "bg-yellow-50",
           border: isDark ? "border-yellow-700" : "border-yellow-200",
-          icon: <Clock className="w-4 h-4" />
+          icon: <Clock className="w-4 h-4" />,
         }
       default:
         return {
           color: isDark ? "text-gray-400" : "text-gray-600",
           bg: isDark ? "bg-gray-800" : "bg-gray-50",
           border: isDark ? "border-gray-700" : "border-gray-200",
-          icon: <XCircle className="w-4 h-4" />
+          icon: <XCircle className="w-4 h-4" />,
         }
     }
   }
@@ -354,12 +373,12 @@ const ChallengePage = () => {
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     })
   }
 
@@ -376,7 +395,7 @@ function solution(input) {
   // Your code here
   return output;
 }
-  `;
+  `
 
       case "python":
         return `
@@ -386,7 +405,7 @@ function solution(input) {
 def solution(input):
     # Your code here
     return output
-  `;
+  `
 
       case "java":
         return `
@@ -398,7 +417,7 @@ public class Solution {
         // Your code here
     }
 }
-  `;
+  `
 
       case "c++":
       case "cpp":
@@ -413,13 +432,12 @@ int main() {
     // Your code here
     return 0;
 }
-  `;
+  `
 
       default:
-        return `// Write your solution here`;
+        return `// Write your solution here`
     }
-  };
-
+  }
 
   // Set template code when language changes
   useEffect(() => {
@@ -430,15 +448,18 @@ int main() {
 
   // Fetch submissions when user data is available
   useEffect(() => {
-    if (userData && id) {
+    if (userData && challengeId) {
       fetchSubmissions()
     }
-  }, [userData, id])
+  }, [userData, challengeId])
 
   if (loading) {
     return (
-      <div className={`flex justify-center items-center h-screen transition-colors duration-200 ${isDark ? 'bg-gray-900' : 'bg-gray-50'
-        }`}>
+      <div
+        className={`flex justify-center items-center h-screen transition-colors duration-200 ${
+          isDark ? "bg-gray-900" : "bg-gray-50"
+        }`}
+      >
         <Loader />
       </div>
     )
@@ -446,16 +467,17 @@ int main() {
 
   if (!challenge) {
     return (
-      <div className={`min-h-screen transition-colors duration-200 ${isDark ? 'bg-gray-900' : 'bg-gray-50'
-        }`}>
+      <div className={`min-h-screen transition-colors duration-200 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
         <div className="container mx-auto px-4 py-16 text-center">
           <XCircle size={64} className="mx-auto mb-4 text-red-500" />
-          <h1 className={`text-3xl font-bold mb-4 transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-800'
-            }`}>
+          <h1
+            className={`text-3xl font-bold mb-4 transition-colors duration-200 ${
+              isDark ? "text-white" : "text-gray-800"
+            }`}
+          >
             Challenge Not Found
           </h1>
-          <p className={`mb-8 transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-600'
-            }`}>
+          <p className={`mb-8 transition-colors duration-200 ${isDark ? "text-gray-300" : "text-gray-600"}`}>
             The challenge you're looking for doesn't exist or has been removed.
           </p>
           <Link
@@ -470,22 +492,22 @@ int main() {
   }
 
   return (
-    <div className={`h-screen flex flex-col transition-colors duration-200 ${isDark
-        ? 'bg-gray-900 text-white'
-        : 'bg-gray-50 text-gray-900'
-      }`}>
-
+    <div
+      className={`h-screen flex flex-col transition-colors duration-200 ${
+        isDark ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
+      }`}
+    >
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
         <Split
           sizes={[50, 50]}
           minSize={[400, 400]}
-          gutterSize={8}
+          gutterSize={10}
           direction="horizontal"
           className="flex h-full relative"
           gutterStyle={() => ({
             background: "linear-gradient(90deg, transparent 0%, rgba(148, 163, 184, 0.3) 50%, transparent 100%)",
-            width: "8px",
+            width: "10px",
             cursor: "col-resize",
             border: "none",
             outline: "none",
@@ -493,30 +515,34 @@ int main() {
             transition: "all 0.2s ease",
           })}
         >
-
           {/* Left Panel - Problem Description */}
-          <div className={`overflow-hidden flex flex-col transition-colors duration-200 ${isDark ? 'bg-gray-800' : 'bg-white'
-            }`}>
-
+          <div
+            className={`overflow-hidden flex flex-col transition-colors duration-200 ${
+              isDark ? "bg-gray-800" : "bg-white"
+            }`}
+          >
             {/* Header */}
-            <div className={`border-b transition-colors duration-200 px-4 py-3 ${isDark
-                ? 'border-gray-700 bg-gray-800'
-                : 'border-gray-200 bg-white'
-              }`}>
+            <div
+              className={`border-b transition-colors duration-200 px-4 py-3 ${
+                isDark ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+              }`}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <Link
-                    href="/challenges"
-                    className={`transition-colors duration-200 ${isDark
-                        ? 'text-gray-400 hover:text-gray-200'
-                        : 'text-gray-600 hover:text-gray-800'
-                      }`}
+                    href="/challenge"
+                    className={`transition-colors duration-200 ${
+                      isDark ? "text-gray-400 hover:text-gray-200" : "text-gray-600 hover:text-gray-800"
+                    }`}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Link>
                   <div className="flex items-center space-x-3">
-                    <h1 className={`text-lg font-medium transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-900'
-                      }`}>
+                    <h1
+                      className={`text-lg font-medium transition-colors duration-200 ${
+                        isDark ? "text-white" : "text-gray-900"
+                      }`}
+                    >
                       {challenge.title}
                     </h1>
                     <span className={`text-sm font-medium ${getDifficultyColor(challenge.difficulty)}`}>
@@ -528,33 +554,39 @@ int main() {
             </div>
             <div className="flex-1 overflow-y-auto">
               <Tabs defaultValue="description" className="w-full">
-                <div className={`border-b px-4 transition-colors duration-200 ${isDark ? 'border-gray-700' : 'border-gray-200'
-                  }`}>
-                  <TabsList className="bg-transparent h-12 p-0 space-x-6">
+                <div
+                  className={`border-b px-4 transition-colors duration-200 ${
+                    isDark ? "border-gray-700" : "border-gray-200"
+                  }`}
+                >
+                  <TabsList className="bg-transparent h-12 p-0 space-x-1">
                     <TabsTrigger
                       value="description"
-                      className={`border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none px-0 py-3 text-sm font-medium transition-colors duration-200 ${isDark
-                          ? 'text-gray-300 bg-gray-800 data-[state=active]:text-blue-400'
-                          : 'text-gray-600 bg-white data-[state=active]:text-blue-600'
-                        }`}
+                      className={`border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none px-4 py-3 text-sm font-medium duration-200 ${
+                        isDark
+                          ? "text-gray-300 bg-gray-800 data-[state=active]:text-blue-400 data-[state=active]:bg-gray-800"
+                          : "text-gray-600 bg-white data-[state=active]:text-blue-600 data-[state=active]:bg-white"
+                      }`}
                     >
                       Description
                     </TabsTrigger>
                     <TabsTrigger
                       value="solutions"
-                      className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none px-0 py-3 text-sm font-medium transition-colors duration-200 ${isDark
-                          ? 'text-gray-300 bg-gray-800 data-[state=active]:text-blue-400'
-                          : 'text-gray-600 bg-white data-[state=active]:text-blue-600'
-                        }`}
+                      className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none px-4 py-3 text-sm font-medium duration-200 ${
+                        isDark
+                          ? "text-gray-300 bg-gray-800 data-[state=active]:text-blue-400 data-[state=active]:bg-gray-800"
+                          : "text-gray-600 bg-white data-[state=active]:text-blue-600 data-[state=active]:bg-white"
+                      }`}
                     >
                       Solutions
                     </TabsTrigger>
                     <TabsTrigger
                       value="submissions"
-                      className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none px-0 py-3 text-sm font-medium transition-colors duration-200 ${isDark
-                          ? 'text-gray-300 bg-gray-800 data-[state=active]:text-blue-400'
-                          : 'text-gray-600 bg-white data-[state=active]:text-blue-600'
-                        }`}
+                      className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 rounded-none px-4 py-3 text-sm font-medium duration-200 ${
+                        isDark
+                          ? "text-gray-300 bg-gray-800 data-[state=active]:text-blue-400 data-[state=active]:bg-gray-800"
+                          : "text-gray-600 bg-white data-[state=active]:text-blue-600 data-[state=active]:bg-white"
+                      }`}
                     >
                       Submissions
                     </TabsTrigger>
@@ -563,8 +595,11 @@ int main() {
 
                 <TabsContent value="description" className="p-4 space-y-6">
                   {/* Problem Stats */}
-                  <div className={`flex items-center space-x-6 text-sm transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
+                  <div
+                    className={`flex items-center space-x-6 text-sm transition-colors duration-200 ${
+                      isDark ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
                     <div className="flex items-center space-x-1">
                       <ThumbsUp className="w-4 h-4" />
                       <span>{challenge.likes}</span>
@@ -585,8 +620,11 @@ int main() {
 
                   {/* Problem Description */}
                   <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <div className={`leading-relaxed transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
+                    <div
+                      className={`leading-relaxed transition-colors duration-200 ${
+                        isDark ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
                       {challenge.description}
                     </div>
                   </div>
@@ -597,40 +635,64 @@ int main() {
                       .filter((tc) => !tc.isHidden)
                       .map((testCase, index) => (
                         <div key={testCase.id} className="space-y-2">
-                          <h4 className={`font-medium transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-900'
-                            }`}>
+                          <h4
+                            className={`font-medium transition-colors duration-200 ${
+                              isDark ? "text-white" : "text-gray-900"
+                            }`}
+                          >
                             Example {index + 1}:
                           </h4>
-                          <div className={`rounded-lg p-3 space-y-2 transition-colors duration-200 ${isDark ? 'bg-gray-700' : 'bg-gray-50'
-                            }`}>
+                          <div
+                            className={`rounded-lg p-3 space-y-2 transition-colors duration-200 ${
+                              isDark ? "bg-gray-700" : "bg-gray-50"
+                            }`}
+                          >
                             <div className="space-x-2">
-                              <span className={`font-medium transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
+                              <span
+                                className={`font-medium transition-colors duration-200 ${
+                                  isDark ? "text-gray-300" : "text-gray-700"
+                                }`}
+                              >
                                 Input:
                               </span>
-                              <code className={`text-sm font-mono transition-colors duration-200 ${isDark ? 'text-gray-100' : 'text-gray-900'
-                                }`}>
+                              <code
+                                className={`text-sm font-mono transition-colors duration-200 ${
+                                  isDark ? "text-gray-100" : "text-gray-900"
+                                }`}
+                              >
                                 {testCase.input}
                               </code>
                             </div>
                             <div className="space-x-2">
-                              <span className={`font-medium transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
+                              <span
+                                className={`font-medium transition-colors duration-200 ${
+                                  isDark ? "text-gray-300" : "text-gray-700"
+                                }`}
+                              >
                                 Output:
                               </span>
-                              <code className={`text-sm font-mono transition-colors duration-200 ${isDark ? 'text-gray-100' : 'text-gray-900'
-                                }`}>
+                              <code
+                                className={`text-sm font-mono transition-colors duration-200 ${
+                                  isDark ? "text-gray-100" : "text-gray-900"
+                                }`}
+                              >
                                 {testCase.output}
                               </code>
                             </div>
                             {testCase.explanation && (
                               <div className="space-x-2">
-                                <span className={`font-medium transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
-                                  }`}>
+                                <span
+                                  className={`font-medium transition-colors duration-200 ${
+                                    isDark ? "text-gray-300" : "text-gray-700"
+                                  }`}
+                                >
                                   Explanation:
                                 </span>
-                                <span className={`text-sm transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
-                                  }`}>
+                                <span
+                                  className={`text-sm transition-colors duration-200 ${
+                                    isDark ? "text-gray-300" : "text-gray-700"
+                                  }`}
+                                >
                                   {testCase.explanation}
                                 </span>
                               </div>
@@ -642,12 +704,18 @@ int main() {
 
                   {/* Constraints */}
                   <div className="space-y-2">
-                    <h4 className={`font-medium transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-900'
-                      }`}>
+                    <h4
+                      className={`font-medium transition-colors duration-200 ${
+                        isDark ? "text-white" : "text-gray-900"
+                      }`}
+                    >
                       Constraints:
                     </h4>
-                    <ul className={`text-sm space-y-1 transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
+                    <ul
+                      className={`text-sm space-y-1 transition-colors duration-200 ${
+                        isDark ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
                       <li>• Time limit: {challenge.timeLimit}ms</li>
                       <li>• Memory limit: {challenge.memoryLimit}MB</li>
                       <li>• 1 ≤ input.length ≤ 10^4</li>
@@ -656,15 +724,21 @@ int main() {
                 </TabsContent>
 
                 <TabsContent value="editorial" className="p-4">
-                  <div className={`text-center py-8 transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                  <div
+                    className={`text-center py-8 transition-colors duration-200 ${
+                      isDark ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
                     Editorial content coming soon...
                   </div>
                 </TabsContent>
 
                 <TabsContent value="solutions" className="p-4">
-                  <div className={`text-center py-8 transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                  <div
+                    className={`text-center py-8 transition-colors duration-200 ${
+                      isDark ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
                     Community solutions coming soon...
                   </div>
                 </TabsContent>
@@ -672,24 +746,31 @@ int main() {
                 <TabsContent value="submissions" className="p-4">
                   {submissionsLoading ? (
                     <div className="flex justify-center py-8">
-                      <RotateCcw className={`w-6 h-6 animate-spin transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-500'
-                        }`} />
+                      <RotateCcw
+                        className={`w-6 h-6 animate-spin transition-colors duration-200 ${
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      />
                     </div>
                   ) : submissions.length > 0 ? (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h3 className={`text-lg font-medium transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-900'
-                          }`}>
+                        <h3
+                          className={`text-lg font-medium transition-colors duration-200 ${
+                            isDark ? "text-white" : "text-gray-900"
+                          }`}
+                        >
                           Your Submissions ({submissions.length})
                         </h3>
                         <Button
                           onClick={fetchSubmissions}
                           variant="ghost"
                           size="sm"
-                          className={`transition-colors duration-200 ${isDark
-                              ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
-                              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                            }`}
+                          className={`transition-colors duration-200 ${
+                            isDark
+                              ? "text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+                              : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                          }`}
                         >
                           <RotateCcw className="w-4 h-4 mr-1" />
                           Refresh
@@ -698,7 +779,7 @@ int main() {
 
                       <div className="space-y-3">
                         {submissions.map((submission) => {
-                          const statusStyles = getSubmissionStatusStyles(submission.status);
+                          const statusStyles = getSubmissionStatusStyles(submission.status)
                           return (
                             <div
                               key={submission.id}
@@ -712,20 +793,29 @@ int main() {
                                       {formatSubmissionStatus(submission.status)}
                                     </span>
                                   </div>
-                                  <span className={`text-sm transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
-                                    }`}>
+                                  <span
+                                    className={`text-sm transition-colors duration-200 ${
+                                      isDark ? "text-gray-400" : "text-gray-600"
+                                    }`}
+                                  >
                                     {submission.language.name}
                                   </span>
                                 </div>
-                                <span className={`text-xs transition-colors duration-200 ${isDark ? 'text-gray-500' : 'text-gray-500'
-                                  }`}>
+                                <span
+                                  className={`text-xs transition-colors duration-200 ${
+                                    isDark ? "text-gray-500" : "text-gray-500"
+                                  }`}
+                                >
                                   {formatDate(submission.createdAt)}
                                 </span>
                               </div>
 
                               {(submission.runtime !== null || submission.memory !== null) && (
-                                <div className={`flex items-center space-x-6 text-sm mb-3 transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
-                                  }`}>
+                                <div
+                                  className={`flex items-center space-x-6 text-sm mb-3 transition-colors duration-200 ${
+                                    isDark ? "text-gray-400" : "text-gray-600"
+                                  }`}
+                                >
                                   {submission.runtime !== null && (
                                     <div className="flex items-center space-x-1">
                                       <Clock className="w-4 h-4" />
@@ -746,43 +836,60 @@ int main() {
                               )}
 
                               <details className="group">
-                                <summary className={`cursor-pointer text-sm font-medium transition-colors duration-200 ${isDark
-                                    ? 'text-blue-400 hover:text-blue-300'
-                                    : 'text-blue-600 hover:text-blue-800'
-                                  }`}>
+                                <summary
+                                  className={`cursor-pointer text-sm font-medium transition-colors duration-200 ${
+                                    isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-800"
+                                  }`}
+                                >
                                   View Code
                                 </summary>
-                                <div className={`mt-3 p-3 rounded border transition-colors duration-200 ${isDark ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
-                                  }`}>
-                                  <pre className={`text-xs font-mono overflow-x-auto whitespace-pre-wrap transition-colors duration-200 ${isDark ? 'text-gray-300' : 'text-gray-700'
-                                    }`}>
+                                <div
+                                  className={`mt-3 p-3 rounded border transition-colors duration-200 ${
+                                    isDark ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200"
+                                  }`}
+                                >
+                                  <pre
+                                    className={`text-xs font-mono overflow-x-auto whitespace-pre-wrap transition-colors duration-200 ${
+                                      isDark ? "text-gray-300" : "text-gray-700"
+                                    }`}
+                                  >
                                     {submission.code}
                                   </pre>
                                 </div>
                               </details>
                             </div>
-                          );
+                          )
                         })}
                       </div>
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <Upload className={`w-12 h-12 mx-auto mb-4 transition-colors duration-200 ${isDark ? 'text-gray-500' : 'text-gray-400'
-                        }`} />
-                      <h3 className={`text-lg font-medium mb-2 transition-colors duration-200 ${isDark ? 'text-white' : 'text-gray-900'
-                        }`}>
+                      <Upload
+                        className={`w-12 h-12 mx-auto mb-4 transition-colors duration-200 ${
+                          isDark ? "text-gray-500" : "text-gray-400"
+                        }`}
+                      />
+                      <h3
+                        className={`text-lg font-medium mb-2 transition-colors duration-200 ${
+                          isDark ? "text-white" : "text-gray-900"
+                        }`}
+                      >
                         No Submissions Yet
                       </h3>
-                      <p className={`mb-4 transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
+                      <p
+                        className={`mb-4 transition-colors duration-200 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                      >
                         Submit your solution to see your submission history here.
                       </p>
                       <Button
-                        onClick={() => document.querySelector('[data-tab="code"]')?.scrollIntoView({ behavior: 'smooth' })}
-                        className={`transition-colors duration-200 ${isDark
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white'
-                          }`}
+                        onClick={() =>
+                          document.querySelector('[data-tab="code"]')?.scrollIntoView({ behavior: "smooth" })
+                        }
+                        className={`transition-colors duration-200 ${
+                          isDark
+                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                            : "bg-blue-600 hover:bg-blue-700 text-white"
+                        }`}
                       >
                         Start Coding
                       </Button>
@@ -794,19 +901,26 @@ int main() {
           </div>
 
           {/* Right Panel - Code Editor */}
-          <div className={`overflow-hidden flex flex-col transition-colors duration-200 ${isDark ? 'bg-gray-800' : 'bg-white'
-            }`}>
+          <div
+            className={`overflow-hidden flex flex-col transition-colors duration-200 ${
+              isDark ? "bg-gray-800" : "bg-white"
+            }`}
+          >
             {/* Code Editor Header */}
-            <div className={`border-b px-4 py-3 transition-colors duration-200 ${isDark ? 'border-gray-700' : 'border-gray-200'
-              }`}>
+            <div
+              className={`border-b px-4 py-3 transition-colors duration-200 ${
+                isDark ? "border-gray-700" : "border-gray-200"
+              }`}
+            >
               <div className="flex items-center justify-between">
                 <select
                   value={selectedLanguage}
                   onChange={handleLanguageChange}
-                  className={`px-3 py-1 border rounded text-sm transition-colors duration-200 ${isDark
-                      ? 'border-gray-600 bg-gray-700 text-white focus:border-blue-500'
-                      : 'border-gray-300 bg-white text-gray-900 focus:border-blue-500'
-                    }`}
+                  className={`px-3 py-1 border rounded text-sm transition-colors duration-200 ${
+                    isDark
+                      ? "border-gray-600 bg-gray-700 text-white focus:border-blue-500"
+                      : "border-gray-300 bg-white text-gray-900 focus:border-blue-500"
+                  }`}
                 >
                   {languages.map((lang) => (
                     <option key={lang.id} value={lang.name}>
@@ -823,11 +937,11 @@ int main() {
                 sizes={[50, 50]}
                 direction="vertical"
                 minSize={[200, 150]}
-                gutterSize={8}
+                gutterSize={10}
                 className="flex flex-col h-full relative"
                 gutterStyle={() => ({
                   background: "linear-gradient(0deg, transparent 0%, rgba(148, 163, 184, 0.3) 50%, transparent 100%)",
-                  height: "8px",
+                  height: "10px",
                   cursor: "row-resize",
                   border: "none",
                   outline: "none",
@@ -836,7 +950,7 @@ int main() {
                 })}
               >
                 {/* Code Editor Pane */}
-                < div className="overflow-hidden">
+                <div className="overflow-hidden">
                   <CodeEditor
                     value={code}
                     onChange={setCode}
@@ -847,30 +961,38 @@ int main() {
                 </div>
 
                 {/* Console */}
-                <div className={`border-t flex flex-col transition-colors duration-200 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-                  }`}>
+                <div
+                  className={`border-t flex flex-col transition-colors duration-200 ${
+                    isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                  }`}
+                >
                   {/* Console Header */}
-                  <div className={`border-b px-4 py-2 transition-colors duration-200 ${isDark ? 'border-gray-700' : 'border-gray-200'
-                    }`}>
+                  <div
+                    className={`border-b px-4 py-2 transition-colors duration-200 ${
+                      isDark ? "border-gray-700" : "border-gray-200"
+                    }`}
+                  >
                     <div className="flex items-center justify-between">
                       <Tabs value={activeConsoleTab} onValueChange={setActiveConsoleTab} className="w-full">
                         <div className="flex items-center justify-between">
                           <TabsList className="bg-transparent h-8 p-0 space-x-4">
                             <TabsTrigger
                               value="testcase"
-                              className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent rounded-none px-0 py-1 text-xs font-medium transition-colors duration-200 ${isDark
-                                  ? 'text-gray-300 data-[state=active]:text-blue-400'
-                                  : 'text-gray-600 data-[state=active]:text-blue-600'
-                                }`}
+                              className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent rounded-none px-0 py-1 text-xs font-medium transition-colors duration-200 ${
+                                isDark
+                                  ? "text-gray-300 data-[state=active]:text-blue-400"
+                                  : "text-gray-600 data-[state=active]:text-blue-600"
+                              }`}
                             >
                               Testcase
                             </TabsTrigger>
                             <TabsTrigger
                               value="result"
-                              className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent rounded-none px-0 py-1 text-xs font-medium transition-colors duration-200 ${isDark
-                                  ? 'text-gray-300 data-[state=active]:text-blue-400'
-                                  : 'text-gray-600 data-[state=active]:text-blue-600'
-                                }`}
+                              className={`bg-transparent border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent rounded-none px-0 py-1 text-xs font-medium transition-colors duration-200 ${
+                                isDark
+                                  ? "text-gray-300 data-[state=active]:text-blue-400"
+                                  : "text-gray-600 data-[state=active]:text-blue-600"
+                              }`}
                             >
                               Test Result
                             </TabsTrigger>
@@ -880,10 +1002,11 @@ int main() {
                               onClick={handleRunCode}
                               disabled={isRunning || !code.trim()}
                               size="sm"
-                              className={`h-7 px-3 text-xs transition-colors duration-200 ${isDark
-                                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:bg-gray-800 disabled:text-gray-500'
-                                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:bg-gray-50 disabled:text-gray-400'
-                                }`}
+                              className={`h-7 px-3 text-xs transition-colors duration-200 ${
+                                isDark
+                                  ? "bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:bg-gray-800 disabled:text-gray-500"
+                                  : "bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:bg-gray-50 disabled:text-gray-400"
+                              }`}
                             >
                               {isRunning ? (
                                 <RotateCcw className="w-3 h-3 mr-1 animate-spin" />
@@ -921,22 +1044,34 @@ int main() {
                           .map((testCase, index) => (
                             <div key={testCase.id} className="space-y-3">
                               <div>
-                                <label className={`text-xs font-medium transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
-                                  }`}>
+                                <label
+                                  className={`text-xs font-medium transition-colors duration-200 ${
+                                    isDark ? "text-gray-400" : "text-gray-600"
+                                  }`}
+                                >
                                   Input:
                                 </label>
-                                <div className={`mt-1 p-2 rounded text-sm font-mono transition-colors duration-200 ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-800'
-                                  }`}>
+                                <div
+                                  className={`mt-1 p-2 rounded text-sm font-mono transition-colors duration-200 ${
+                                    isDark ? "bg-gray-700 text-gray-200" : "bg-gray-50 text-gray-800"
+                                  }`}
+                                >
                                   {testCase.input}
                                 </div>
                               </div>
                               <div>
-                                <label className={`text-xs font-medium transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
-                                  }`}>
+                                <label
+                                  className={`text-xs font-medium transition-colors duration-200 ${
+                                    isDark ? "text-gray-400" : "text-gray-600"
+                                  }`}
+                                >
                                   Expected Output:
                                 </label>
-                                <div className={`mt-1 p-2 rounded text-sm font-mono transition-colors duration-200 ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-50 text-gray-800'
-                                  }`}>
+                                <div
+                                  className={`mt-1 p-2 rounded text-sm font-mono transition-colors duration-200 ${
+                                    isDark ? "bg-gray-700 text-gray-200" : "bg-gray-50 text-gray-800"
+                                  }`}
+                                >
                                   {testCase.output}
                                 </div>
                               </div>
@@ -947,14 +1082,15 @@ int main() {
                       <TabsContent value="result" className="mt-0">
                         {submissionStatus && (
                           <div
-                            className={`mb-4 p-3 rounded-lg flex items-center space-x-2 transition-colors duration-200 ${submissionStatus === "ACCEPTED"
+                            className={`mb-4 p-3 rounded-lg flex items-center space-x-2 transition-colors duration-200 ${
+                              submissionStatus === "ACCEPTED"
                                 ? isDark
                                   ? "bg-green-900/30 text-green-300 border border-green-700"
                                   : "bg-green-50 text-green-800 border border-green-200"
                                 : isDark
                                   ? "bg-red-900/30 text-red-300 border border-red-700"
                                   : "bg-red-50 text-red-800 border border-red-200"
-                              }`}
+                            }`}
                           >
                             {submissionStatus === "ACCEPTED" ? (
                               <CheckCircle className="w-5 h-5" />
@@ -970,8 +1106,11 @@ int main() {
                         {testResults && (
                           <div className="space-y-4">
                             {runtime !== null && memory !== null && (
-                              <div className={`flex items-center space-x-6 text-sm transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-600'
-                                }`}>
+                              <div
+                                className={`flex items-center space-x-6 text-sm transition-colors duration-200 ${
+                                  isDark ? "text-gray-400" : "text-gray-600"
+                                }`}
+                              >
                                 <div className="flex items-center space-x-1">
                                   <Clock className="w-4 h-4" />
                                   <span>Runtime: {runtime}ms</span>
@@ -987,14 +1126,15 @@ int main() {
                               {testResults.map((result, index) => (
                                 <div
                                   key={index}
-                                  className={`p-3 rounded border-l-4 transition-colors duration-200 ${result.passed
+                                  className={`p-3 rounded border-l-4 transition-colors duration-200 ${
+                                    result.passed
                                       ? isDark
                                         ? "border-l-green-500 bg-green-900/20 text-green-300"
                                         : "border-l-green-500 bg-green-50 text-green-800"
                                       : isDark
                                         ? "border-l-red-500 bg-red-900/20 text-red-300"
                                         : "border-l-red-500 bg-red-50 text-red-800"
-                                    }`}
+                                  }`}
                                 >
                                   <div className="flex items-center space-x-2 mb-2">
                                     {result.passed ? (
@@ -1008,22 +1148,31 @@ int main() {
                                     <div className="space-y-2 text-xs">
                                       <div>
                                         <span className="font-medium">Input: </span>
-                                        <code className={`px-1 rounded transition-colors duration-200 ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'
-                                          }`}>
+                                        <code
+                                          className={`px-1 rounded transition-colors duration-200 ${
+                                            isDark ? "bg-gray-700 text-gray-200" : "bg-gray-100 text-gray-800"
+                                          }`}
+                                        >
                                           {result.input}
                                         </code>
                                       </div>
                                       <div>
                                         <span className="font-medium">Expected: </span>
-                                        <code className={`px-1 rounded transition-colors duration-200 ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'
-                                          }`}>
+                                        <code
+                                          className={`px-1 rounded transition-colors duration-200 ${
+                                            isDark ? "bg-gray-700 text-gray-200" : "bg-gray-100 text-gray-800"
+                                          }`}
+                                        >
                                           {result.expectedOutput}
                                         </code>
                                       </div>
                                       <div>
                                         <span className="font-medium">Actual: </span>
-                                        <code className={`px-1 rounded transition-colors duration-200 ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'
-                                          }`}>
+                                        <code
+                                          className={`px-1 rounded transition-colors duration-200 ${
+                                            isDark ? "bg-gray-700 text-gray-200" : "bg-gray-100 text-gray-800"
+                                          }`}
+                                        >
                                           {result.actualOutput}
                                         </code>
                                       </div>
@@ -1036,8 +1185,11 @@ int main() {
                         )}
 
                         {!testResults && !submissionStatus && (
-                          <div className={`text-center py-8 text-sm transition-colors duration-200 ${isDark ? 'text-gray-400' : 'text-gray-500'
-                            }`}>
+                          <div
+                            className={`text-center py-8 text-sm transition-colors duration-200 ${
+                              isDark ? "text-gray-400" : "text-gray-500"
+                            }`}
+                          >
                             Run your code to see results here
                           </div>
                         )}
@@ -1048,9 +1200,9 @@ int main() {
               </Split>
             </div>
           </div>
-        </Split >
-      </div >
-    </div >
+        </Split>
+      </div>
+    </div>
   )
 }
 
