@@ -57,69 +57,88 @@ export function UserActivityChart({ className }: UserActivityChartProps) {
 
     const chartData = loading || data.length === 0 ? fallbackData : data
 
+
     return (
-        <ChartContainer
-            config={{
-                activeUsers: {
-                    label: "Active Users",
-                    color: "hsl(var(--chart-1))",
-                },
-                newUsers: {
-                    label: "New Users",
-                    color: "hsl(var(--chart-2))",
-                },
-            }}
-            className={className}
-        >
-            <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                    data={chartData}
-                    margin={{
-                        top: 5,
-                        right: 10,
-                        left: 10,
-                        bottom: 0,
-                    }}
-                >
-                    <XAxis
-                        dataKey="date"
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(value) => {
-                            const date = new Date(value)
-                            return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+        <div className={className}>
+            <ChartContainer
+                config={{
+                    activeUsers: {
+                        label: "Active Users",
+                        color: "#f97316",
+                    },
+                    newUsers: {
+                        label: "New Users",
+                        color: "#3b82f6",
+                    },
+                }}
+                className="w-full h-full"
+            >
+                <ResponsiveContainer width="100%" height={330}>
+                    <LineChart
+                        data={chartData}
+                        margin={{
+                            top: 20,
+                            right: 20,
+                            left: 20,
+                            bottom: 20,
                         }}
-                        tickMargin={10}
-                    />
-                    <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} tickMargin={10} />
-                    <Tooltip content={<ChartTooltipContent indicator="line" />} />
-                    <Line
-                        type="monotone"
-                        dataKey="activeUsers"
-                        strokeWidth={2}
-                        activeDot={{
-                            r: 6,
-                            style: { fill: "var(--color-activeUsers)", opacity: 0.8 },
-                        }}
-                        style={{
-                            stroke: "var(--color-activeUsers)",
-                        }}
-                    />
-                    <Line
-                        type="monotone"
-                        dataKey="newUsers"
-                        strokeWidth={2}
-                        activeDot={{
-                            r: 6,
-                            style: { fill: "var(--color-newUsers)", opacity: 0.8 },
-                        }}
-                        style={{
-                            stroke: "var(--color-newUsers)",
-                        }}
-                    />
-                </LineChart>
-            </ResponsiveContainer>
-        </ChartContainer>
+                    >
+                        <XAxis
+                            dataKey="date"
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(value) => {
+                                const date = new Date(value)
+                                return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                            }}
+                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                            tickMargin={10}
+                        />
+                        <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(value) => `${value}`}
+                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                            tickMargin={10}
+                        />
+                        <Tooltip
+                            content={
+                                <ChartTooltipContent
+                                    indicator="line"
+                                    className="bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700"
+                                />
+                            }
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="activeUsers"
+                            strokeWidth={3}
+                            stroke="#f97316"
+                            activeDot={{
+                                r: 6,
+                                fill: "#f97316",
+                                strokeWidth: 2,
+                                stroke: "#ffffff",
+                            }}
+                            dot={{ r: 0 }}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="newUsers"
+                            strokeWidth={3}
+                            stroke="#3b82f6"
+                            activeDot={{
+                                r: 6,
+                                fill: "#3b82f6",
+                                strokeWidth: 2,
+                                stroke: "#ffffff",
+                            }}
+                            dot={{ r: 0 }}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+        </div>
     )
 }
 

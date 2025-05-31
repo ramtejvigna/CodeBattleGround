@@ -55,50 +55,68 @@ export function UserGrowthChart({ className }: UserGrowthChartProps) {
     const chartData = loading || data.length === 0 ? fallbackData : data
 
     return (
-        <ChartContainer
-            config={{
-                users: {
-                    label: "Total Users",
-                    color: "hsl(var(--chart-3))",
-                },
-            }}
-            className={className}
-        >
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                    data={chartData}
-                    margin={{
-                        top: 5,
-                        right: 10,
-                        left: 10,
-                        bottom: 0,
-                    }}
-                >
-                    <XAxis
-                        dataKey="date"
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(value) => {
-                            const [year, month] = value.split("-")
-                            return new Date(Number.parseInt(year), Number.parseInt(month) - 1).toLocaleDateString("en-US", {
-                                month: "short",
-                            })
+        <div className={className}>
+            <ChartContainer
+                config={{
+                    users: {
+                        label: "Total Users",
+                        color: "#8b5cf6",
+                    },
+                }}
+                className="w-full h-full"
+            >
+                <ResponsiveContainer width="100%" height={330}>
+                    <BarChart
+                        data={chartData}
+                        margin={{
+                            top: 20,
+                            right: 20,
+                            left: 20,
+                            bottom: 20,
                         }}
-                        tickMargin={10}
-                    />
-                    <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} tickMargin={10} />
-                    <Tooltip content={<ChartTooltipContent indicator="line" />} />
-                    <Bar
-                        dataKey="users"
-                        radius={[4, 4, 0, 0]}
-                        style={{
-                            fill: "var(--color-users)",
-                            opacity: 0.9,
-                        }}
-                    />
-                </BarChart>
-            </ResponsiveContainer>
-        </ChartContainer>
+                    >
+                        <XAxis
+                            dataKey="date"
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(value) => {
+                                const [year, month] = value.split("-")
+                                return new Date(Number.parseInt(year), Number.parseInt(month) - 1).toLocaleDateString("en-US", {
+                                    month: "short",
+                                })
+                            }}
+                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                            tickMargin={10}
+                        />
+                        <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(value) => `${value}`}
+                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                            tickMargin={10}
+                        />
+                        <Tooltip
+                            content={
+                                <ChartTooltipContent
+                                    indicator="line"
+                                    className="bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700"
+                                />
+                            }
+                        />
+                        <Bar
+                            dataKey="users"
+                            radius={[6, 6, 0, 0]}
+                            fill="url(#purpleGradient)"
+                        />
+                        <defs>
+                            <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.9} />
+                                <stop offset="95%" stopColor="#a855f7" stopOpacity={0.7} />
+                            </linearGradient>
+                        </defs>
+                    </BarChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+        </div>
     )
 }
-

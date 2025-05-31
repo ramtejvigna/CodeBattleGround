@@ -52,40 +52,75 @@ export function UsersByLevelChart({ className }: UsersByLevelChartProps) {
 
     const chartData = loading || data.length === 0 ? fallbackData : data
 
+    const CustomTooltip = ({ active, payload, label }: any) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                        Level {label}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {payload[0].value.toLocaleString()} users
+                    </p>
+                </div>
+            )
+        }
+        return null
+    }
+
     return (
-        <ChartContainer
-            config={{
-                users: {
-                    label: "Users",
-                    color: "hsl(var(--chart-4))",
-                },
-            }}
-            className={className}
-        >
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                    data={chartData}
-                    margin={{
-                        top: 5,
-                        right: 10,
-                        left: 10,
-                        bottom: 0,
-                    }}
-                >
-                    <XAxis dataKey="level" tickLine={false} axisLine={false} tickMargin={10} />
-                    <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} tickMargin={10} />
-                    <Tooltip content={<ChartTooltipContent indicator="line" />} />
-                    <Bar
-                        dataKey="users"
-                        radius={[4, 4, 0, 0]}
-                        style={{
-                            fill: "var(--color-users)",
-                            opacity: 0.9,
+        <div className={className}>
+            <ChartContainer
+                config={{
+                    users: {
+                        label: "Users",
+                        color: "#06b6d4",
+                    },
+                }}
+                className="w-full h-full"
+            >
+                <ResponsiveContainer width="100%" height={280}>
+                    <BarChart
+                        data={chartData}
+                        margin={{
+                            top: 20,
+                            right: 20,
+                            left: 20,
+                            bottom: 20,
                         }}
-                    />
-                </BarChart>
-            </ResponsiveContainer>
-        </ChartContainer>
+                    >
+                        <XAxis 
+                            dataKey="level" 
+                            tickLine={false} 
+                            axisLine={false} 
+                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                            tickMargin={10} 
+                        />
+                        <YAxis 
+                            tickLine={false} 
+                            axisLine={false} 
+                            tickFormatter={(value) => `${value}`} 
+                            tick={{ fontSize: 12, fill: '#6b7280' }}
+                            tickMargin={10} 
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar
+                            dataKey="users"
+                            radius={[6, 6, 0, 0]}
+                            fill="url(#cyanGradient)"
+                            animationDuration={1000}
+                            animationBegin={0}
+                        />
+                        <defs>
+                            <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.9}/>
+                                <stop offset="95%" stopColor="#0891b2" stopOpacity={0.7}/>
+                            </linearGradient>
+                        </defs>
+                    </BarChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+        </div>
     )
 }
 

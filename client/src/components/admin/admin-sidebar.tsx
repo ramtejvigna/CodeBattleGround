@@ -118,12 +118,6 @@ export default function AdminSidebar({ className }: SidebarNavProps) {
                                 Actions
                             </h2>
                             <div className="space-y-1">
-                                <Button variant="ghost" size="sm" className="w-full justify-start font-normal" asChild>
-                                    <Link href="/">
-                                        <Home className="mr-2 h-4 w-4" />
-                                        Back to Site
-                                    </Link>
-                                </Button>
                                 <Button
                                     variant="ghost"
                                     size="sm"

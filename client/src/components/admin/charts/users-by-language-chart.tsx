@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts"
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip, Legend } from "recharts"
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
 
 interface LanguageData {
@@ -48,53 +48,85 @@ export function UsersByLanguageChart({ className }: UsersByLanguageChartProps) {
 
     const chartData = loading || data.length === 0 ? fallbackData : data
 
+    const CustomTooltip = ({ active, payload }: any) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                        {payload[0].name}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {payload[0].value}% of users
+                    </p>
+                </div>
+            )
+        }
+        return null
+    }
+
     return (
-        <ChartContainer
-            config={{
-                javascript: {
-                    label: "JavaScript",
-                    color: "#eab308",
-                },
-                python: {
-                    label: "Python",
-                    color: "#3b82f6",
-                },
-                java: {
-                    label: "Java",
-                    color: "#ef4444",
-                },
-                cpp: {
-                    label: "C++",
-                    color: "#8b5cf6",
-                },
-                typescript: {
-                    label: "TypeScript",
-                    color: "#0ea5e9",
-                },
-            }}
-            className={className}
-        >
-            <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                    <Pie
-                        data={chartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        labelLine={false}
-                    >
-                        {chartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                    </Pie>
-                    <Tooltip content={<ChartTooltipContent indicator="dot" />} />
-                </PieChart>
-            </ResponsiveContainer>
-        </ChartContainer>
+        <div className={className}>
+            <ChartContainer
+                config={{
+                    javascript: {
+                        label: "JavaScript",
+                        color: "#f7df1e",
+                    },
+                    python: {
+                        label: "Python",
+                        color: "#3776ab",
+                    },
+                    java: {
+                        label: "Java",
+                        color: "#ed8b00",
+                    },
+                    cpp: {
+                        label: "C++",
+                        color: "#00599c",
+                    },
+                    typescript: {
+                        label: "TypeScript",
+                        color: "#3178c6",
+                    },
+                }}
+                className="w-full h-full"
+            >
+                <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                        <Pie
+                            data={chartData}
+                            cx="50%"
+                            cy="45%"
+                            innerRadius={50}
+                            outerRadius={90}
+                            paddingAngle={3}
+                            dataKey="value"
+                            animationBegin={0}
+                            animationDuration={1200}
+                        >
+                            {chartData.map((entry, index) => (
+                                <Cell 
+                                    key={`cell-${index}`} 
+                                    fill={entry.color}
+                                    stroke="white"
+                                    strokeWidth={2}
+                                />
+                            ))}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend 
+                            verticalAlign="bottom" 
+                            height={36}
+                            formatter={(value, entry: any) => (
+                                <span style={{ color: entry.color, fontWeight: 500 }}>
+                                    {value}
+                                </span>
+                            )}
+                        />
+                    </PieChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+        </div>
     )
 }
 

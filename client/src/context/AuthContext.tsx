@@ -78,6 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             router.push('/profile');
         } catch (err) {
             // Error is already handled in the store
+            throw new Error('Login failed');
         }
     };
 
@@ -87,6 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             router.push('/profile');
         } catch (err) {
             // Error is already handled in the store
+            throw new Error('Signup failed');
         }
     };
 
