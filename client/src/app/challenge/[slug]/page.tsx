@@ -233,12 +233,21 @@ const ChallengePage = () => {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to run code")
+        if (data.compilationError) {
+          toast.error("Compilation Error")
+        } else {
+          toast.error(data.error || "Failed to run code")
+        }
+        return
       }
 
       setTestResults(data.testResults)
       setRuntime(data.runtime)
       setMemory(data.memory)
+      
+      if (data.compilationError) {
+        toast.error("Code compiled with warnings")
+      }
     } catch (error) {
       console.error("Error running code:", error)
       toast.error("Failed to run code")
@@ -273,7 +282,14 @@ const ChallengePage = () => {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to submit solution")
+        if (data.compilationError) {
+          toast.error("Compilation Error: " + data.message)
+          setSubmissionStatus("COMPILATION_ERROR")
+        } else {
+          toast.error(data.error || "Failed to submit solution")
+          setSubmissionStatus("FAILED")
+        }
+        return
       }
 
       setTestResults(data.testResults)
@@ -282,9 +298,9 @@ const ChallengePage = () => {
       setSubmissionStatus(data.allPassed ? "ACCEPTED" : "FAILED")
 
       if (data.allPassed) {
-        toast.success("Solution accepted! All test cases passed.")
+        toast.success(`Solution accepted! All ${data.totalTests} test cases passed.`)
       } else {
-        toast.error("Solution failed. Some test cases did not pass.")
+        toast.error(`Solution failed. ${data.passedTests}/${data.totalTests} test cases passed.`)
       }
 
       // Refresh submissions list after submission
@@ -292,6 +308,7 @@ const ChallengePage = () => {
     } catch (error) {
       console.error("Error submitting solution:", error)
       toast.error("Failed to submit solution")
+      setSubmissionStatus("FAILED")
     } finally {
       setIsSubmitting(false)
     }

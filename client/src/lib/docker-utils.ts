@@ -10,821 +10,841 @@ let docker: Docker | null = null
 // Function to get Docker instance with lazy initialization
 export function getDockerInstance(): Docker {
   if (!docker) {
-    // When running in a production environment, we should use the Docker socket
     docker = new Docker()
   }
   return docker
 }
 
-// Simplified code execution function with plain text input/output
-export async function executeCodeInDocker(
-  code: string,
-  language: string,
-  input: string,
-  expectedOutput: string,
-  timeLimit: number,
-  memoryLimit: number,
-) {
-  const executionId = randomUUID()
-
-  // Create temp directory for code execution
-  const tempDir = path.join(process.cwd(), "tmp", executionId)
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true })
-  }
-
-  let mainFile, runtimeImage, execCommand
-
-  // Language-specific setups
-  switch (language.toLowerCase()) {
-    case "javascript":
-      mainFile = path.join(tempDir, "solution.js")
-      await writeFile(mainFile, code)
-
-      // Create a simplified runner file
-      const jsRunnerFile = path.join(tempDir, "runner.js")
-      await writeFile(
-        jsRunnerFile,
-        `
-const fs = require('fs');
-const solution = require('./solution.js');
-
-const input = fs.readFileSync('/app/input.txt', 'utf8');
-let output;
-
-// Check if solution exports a function directly
-if (typeof solution === 'function') {
-    output = solution(input);
-} 
-// Check if solution has a main or solve function
-else if (typeof solution.main === 'function') {
-    output = solution.main(input);
-} 
-else if (typeof solution.solve === 'function') {
-    output = solution.solve(input);
-} 
-// Try to find any exported function
-else {
-    const exportedFunctions = Object.keys(solution).filter(key => typeof solution[key] === 'function');
-    if (exportedFunctions.length > 0) {
-        output = solution[exportedFunctions[0]](input);
-    } else {
-        output = "Error: No executable function found in solution";
-    }
+// Interface for test case execution result
+interface TestCaseResult {
+  input: string
+  expectedOutput: string
+  actualOutput: string
+  passed: boolean
+  runtime: number
+  memory: number
+  error?: string
+  errorType?: string
 }
 
-fs.writeFileSync('/app/output.txt', String(output));
-`,
-      )
+// Interface for code execution result
+interface CodeExecutionResult {
+  success: boolean
+  testResults: TestCaseResult[]
+  allPassed: boolean
+  avgRuntime: number
+  maxMemory: number
+  errorMessage?: string
+  compilationError?: string
+}
 
-      runtimeImage = "node:18-alpine"
-      execCommand = ["node", "/app/runner.js"]
-      break
+// Main execution function that handles both single test case runs and full submissions
+export async function executeCode(
+  code: string,
+  language: string,
+  testCases: Array<{ input: string; output: string; id: string }>,
+  timeLimit: number,
+  memoryLimit: number,
+  isSubmission: boolean = false
+): Promise<CodeExecutionResult> {
+  const executionId = randomUUID()
+  const tempDir = path.join(process.cwd(), "tmp", executionId)
+  
+  try {
+    // Create temp directory for code execution
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true })
+    }
 
-    case "python":
-      mainFile = path.join(tempDir, "solution.py")
-      await writeFile(mainFile, code)
+    // For non-submission runs, only execute the first test case
+    const casesToExecute = isSubmission ? testCases : testCases.slice(0, 1)
+    const testResults: TestCaseResult[] = []
+    let allPassed = true
+    let totalRuntime = 0
+    let maxMemory = 0
+    let compilationError: string | undefined
 
-      // Create a simplified runner file
-      const pyRunnerFile = path.join(tempDir, "runner.py")
-      await writeFile(
-        pyRunnerFile,
-        `
-import importlib.util
+    // Setup language-specific environment
+    const langConfig = await setupLanguageEnvironment(code, language, tempDir)
+    if (!langConfig.success) {
+      return {
+        success: false,
+        testResults: [],
+        allPassed: false,
+        avgRuntime: 0,
+        maxMemory: 0,
+        compilationError: langConfig.error
+      }
+    }
+
+    // Execute each test case
+    for (const testCase of casesToExecute) {
+      try {
+        const result = await executeTestCase(
+          langConfig,
+          testCase.input,
+          testCase.output,
+          timeLimit,
+          memoryLimit,
+          tempDir
+        )
+
+        testResults.push({
+          input: testCase.input,
+          expectedOutput: testCase.output,
+          actualOutput: result.output,
+          passed: result.passed,
+          runtime: result.runtime,
+          memory: result.memory,
+          error: result.error,
+          errorType: result.errorType
+        })
+
+        totalRuntime += result.runtime
+        maxMemory = Math.max(maxMemory, result.memory)
+
+        if (!result.passed) {
+          allPassed = false
+        }
+      } catch (error) {
+        console.error("Test case execution error:", error)
+        testResults.push({
+          input: testCase.input,
+          expectedOutput: testCase.output,
+          actualOutput: "",
+          passed: false,
+          runtime: 0,
+          memory: 0,
+          error: String(error),
+          errorType: "EXECUTION_ERROR"
+        })
+        allPassed = false
+      }
+    }
+
+    return {
+      success: true,
+      testResults,
+      allPassed,
+      avgRuntime: casesToExecute.length > 0 ? Math.round(totalRuntime / casesToExecute.length) : 0,
+      maxMemory,
+      compilationError
+    }
+
+  } catch (error) {
+    console.error("Code execution error:", error)
+    return {
+      success: false,
+      testResults: [],
+      allPassed: false,
+      avgRuntime: 0,
+      maxMemory: 0,
+      errorMessage: String(error)
+    }
+  } finally {
+    // Clean up temp files
+    try {
+      if (fs.existsSync(tempDir)) {
+        fs.rmSync(tempDir, { recursive: true, force: true })
+      }
+    } catch (rmError) {
+      console.error("Error removing temp directory:", rmError)
+    }
+  }
+}
+
+// Language configuration interface
+interface LanguageConfig {
+  success: boolean
+  runtimeImage: string
+  execCommand: string[]
+  error?: string
+}
+
+// Setup language-specific environment and files
+async function setupLanguageEnvironment(
+  code: string,
+  language: string,
+  tempDir: string
+): Promise<LanguageConfig> {
+  try {
+    switch (language.toLowerCase()) {
+      case "javascript":
+        return await setupJavaScript(code, tempDir)
+      case "python":
+        return await setupPython(code, tempDir)
+      case "java":
+        return await setupJava(code, tempDir)
+      case "c++":
+      case "cpp":
+        return await setupCpp(code, tempDir)
+      case "c":
+        return await setupC(code, tempDir)
+      case "ruby":
+        return await setupRuby(code, tempDir)
+      case "go":
+        return await setupGo(code, tempDir)
+      case "rust":
+        return await setupRust(code, tempDir)
+      case "php":
+        return await setupPhp(code, tempDir)
+      default:
+        return {
+          success: false,
+          runtimeImage: "",
+          execCommand: [],
+          error: `Unsupported language: ${language}`
+        }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      runtimeImage: "",
+      execCommand: [],
+      error: `Failed to setup ${language} environment: ${String(error)}`
+    }
+  }
+}
+
+// JavaScript setup
+async function setupJavaScript(code: string, tempDir: string): Promise<LanguageConfig> {
+  const solutionFile = path.join(tempDir, "solution.js")
+  await writeFile(solutionFile, code)
+
+  const runnerFile = path.join(tempDir, "runner.js")
+  await writeFile(runnerFile, `
+const fs = require('fs');
+
+try {
+  const input = fs.readFileSync('/app/input.txt', 'utf8').trim();
+  
+  // Try to execute the solution
+  try {
+    // Redirect stdin for the solution
+    process.stdin.push(input);
+    process.stdin.push(null);
+    
+    // Capture stdout
+    let output = '';
+    const originalWrite = process.stdout.write;
+    process.stdout.write = function(string) {
+      output += string;
+      return true;
+    };
+    
+    // Execute the solution
+    require('/app/solution.js');
+    
+    // Restore stdout
+    process.stdout.write = originalWrite;
+    
+    // If no output captured, try module export approach
+    if (!output.trim()) {
+      const solution = require('/app/solution.js');
+      if (typeof solution === 'function') {
+        output = solution(input);
+      } else if (solution && typeof solution.solve === 'function') {
+        output = solution.solve(input);
+      } else if (solution && typeof solution.main === 'function') {
+        output = solution.main(input);
+      }
+    }
+    
+    fs.writeFileSync('/app/output.txt', String(output || '').trim());
+    
+  } catch (execError) {
+    // If solution execution fails, try eval approach
+    try {
+      const solutionCode = fs.readFileSync('/app/solution.js', 'utf8');
+      
+      // Create a context with console.log that captures output
+      let output = '';
+      const mockConsole = {
+        log: (...args) => {
+          output += args.join(' ') + '\\n';
+        }
+      };
+      
+      // Execute with mock console
+      const func = new Function('console', 'input', solutionCode + '; return typeof solve !== "undefined" ? solve(input) : typeof main !== "undefined" ? main(input) : output;');
+      const result = func(mockConsole, input);
+      
+      fs.writeFileSync('/app/output.txt', String(result || output).trim());
+      
+    } catch (evalError) {
+      throw new Error('Failed to execute JavaScript solution: ' + evalError.message);
+    }
+  }
+  
+} catch (error) {
+  fs.writeFileSync('/app/error.txt', 'Runtime Error: ' + error.message);
+  process.exit(1);
+}
+`)
+
+  return {
+    success: true,
+    runtimeImage: "node:18-alpine",
+    execCommand: ["/bin/sh", "-c", "cd /app && node runner.js"]
+  }
+}
+
+// Python setup
+async function setupPython(code: string, tempDir: string): Promise<LanguageConfig> {
+  const solutionFile = path.join(tempDir, "solution.py")
+  await writeFile(solutionFile, code)
+
+  const runnerFile = path.join(tempDir, "runner.py")
+  await writeFile(runnerFile, `
 import sys
+import subprocess
+import traceback
+import importlib.util
 import inspect
+import io
+import contextlib
 
-# Load the solution module
-spec = importlib.util.spec_from_file_location("solution", "/app/solution.py")
-solution = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(solution)
+try:
+    with open('/app/input.txt', 'r') as f:
+        input_data = f.read().strip()
+    
+    result = None
+    has_functions = False
+    
+    try:
+        spec = importlib.util.spec_from_file_location("solution", "/app/solution.py")
+        solution = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(solution)
+        
+        # Check if module has callable functions
+        if hasattr(solution, 'main') and callable(solution.main):
+            result = solution.main(input_data)
+            has_functions = True
+        elif hasattr(solution, 'solve') and callable(solution.solve):
+            result = solution.solve(input_data)
+            has_functions = True
+        else:
+            functions = inspect.getmembers(solution, inspect.isfunction)
+            if functions:
+                result = functions[0][1](input_data)
+                has_functions = True
+    except Exception as import_error:
+        # Module might be a direct script, not importable
+        has_functions = False
+    
+    # If no functions found, execute as direct script
+    if not has_functions:
+        try:
+            # Capture stdout from direct execution
+            old_stdin = sys.stdin
+            sys.stdin = io.StringIO(input_data)
+            
+            captured_output = io.StringIO()
+            with contextlib.redirect_stdout(captured_output):
+                with open('/app/solution.py', 'r') as f:
+                    code_content = f.read()
+                exec(code_content)
+            
+            sys.stdin = old_stdin
+            result = captured_output.getvalue().strip()
+            
+            # If no output captured, try subprocess execution
+            if not result:
+                process = subprocess.run(['python', '/app/solution.py'], 
+                                       input=input_data, 
+                                       text=True, 
+                                       capture_output=True, 
+                                       timeout=30)
+                if process.returncode == 0:
+                    result = process.stdout.strip()
+                else:
+                    raise Exception(f"Script execution failed: {process.stderr}")
+                    
+        except Exception as exec_error:
+            raise Exception(f"Failed to execute Python code: {str(exec_error)}")
+    
+    with open('/app/output.txt', 'w') as f:
+        f.write(str(result or '').strip())
+        
+except Exception as e:
+    with open('/app/error.txt', 'w') as f:
+        f.write(f"Runtime Error: {str(e)}")
+    sys.exit(1)
+`)
 
-# Read input
-with open('/app/input.txt', 'r') as f:
-    input_data = f.read()
+  return {
+    success: true,
+    runtimeImage: "python:3.11-alpine",
+    execCommand: ["python", "/app/runner.py"]
+  }
+}
 
-# Find the main function to execute
-result = None
-if hasattr(solution, 'main') and callable(solution.main):
-    result = solution.main(input_data)
-elif hasattr(solution, 'solve') and callable(solution.solve):
-    result = solution.solve(input_data)
-else:
-    # Find any function that could be the entry point
-    functions = inspect.getmembers(solution, inspect.isfunction)
-    if functions:
-        result = functions[0][1](input_data)
-    else:
-        result = "Error: No executable function found in solution"
+// Java setup
+async function setupJava(code: string, tempDir: string): Promise<LanguageConfig> {
+  // Extract class name from the code
+  const classMatch = code.match(/public\s+class\s+(\w+)/);
+  const className = classMatch ? classMatch[1] : "Solution";
+  
+  // Create the solution file with the correct class name
+  const solutionFile = path.join(tempDir, `${className}.java`)
+  await writeFile(solutionFile, code)
 
-# Write output
-with open('/app/output.txt', 'w') as f:
-    f.write(str(result))
-`,
-      )
-
-      runtimeImage = "python:3.11-alpine"
-      execCommand = ["python", "/app/runner.py"]
-      break
-
-    case "java":
-      mainFile = path.join(tempDir, "Solution.java")
-      await writeFile(mainFile, code)
-
-      // Create a simplified runner file
-      await writeFile(
-        path.join(tempDir, "Runner.java"),
-        `import java.io.*;
+  const runnerFile = path.join(tempDir, "Runner.java")
+  await writeFile(runnerFile, `
+import java.io.*;
 import java.nio.file.*;
-import java.lang.reflect.*;
+import java.lang.reflect.Method;
 
 public class Runner {
     public static void main(String[] args) {
         try {
-            // Read input and write to System.in simulation file
-            String input = new String(Files.readAllBytes(Paths.get("/app/input.txt")));
-            Files.write(Paths.get("/app/system_in.txt"), input.getBytes());
+            String input = new String(Files.readAllBytes(Paths.get("/app/input.txt"))).trim();
             
-            // Redirect System.in to read from our file
-            System.setIn(new FileInputStream("/app/system_in.txt"));
+            // Redirect System.in for the solution
+            System.setIn(new ByteArrayInputStream(input.getBytes()));
             
-            // Compile Solution
-            Process compile = Runtime.getRuntime().exec("javac /app/Solution.java");
-            compile.waitFor();
-            
-            if (compile.exitValue() != 0) {
-                writeOutput("Compilation Error");
-                return;
-            }
-            
-            // Redirect output capture
-            PrintStream originalOut = System.out;
+            // Capture System.out
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream originalOut = System.out;
             System.setOut(new PrintStream(baos));
             
-            // Execute Solution
-            Class<?> solutionClass = Class.forName("Solution");
-            Method mainMethod = solutionClass.getMethod("main", String[].class);
-            mainMethod.invoke(null, (Object) new String[0]);
+            // Dynamically invoke the main method of the solution class
+            try {
+                Class<?> solutionClass = Class.forName("${className}");
+                Method mainMethod = solutionClass.getMethod("main", String[].class);
+                System.err.println("Invoking main method of class: ${className}");
+                mainMethod.invoke(null, (Object) new String[]{});
+            } catch (ClassNotFoundException e) {
+                System.err.println("Class ${className} not found, trying Solution class");
+                try {
+                    Class<?> solutionClass = Class.forName("Solution");
+                    Method mainMethod = solutionClass.getMethod("main", String[].class);
+                    System.err.println("Invoking main method of class: Solution");
+                    mainMethod.invoke(null, (Object) new String[]{});
+                } catch (Exception fallbackError) {
+                    System.err.println("Failed to invoke Solution class: " + fallbackError.getMessage());
+                    throw fallbackError;
+                }
+            }
             
-            // Restore output and write results
+            // Restore System.out
             System.setOut(originalOut);
-            writeOutput(baos.toString());
+            
+            // Write captured output to file
+            String output = baos.toString().trim();
+            Files.write(Paths.get("/app/output.txt"), output.getBytes());
             
         } catch (Exception e) {
-            writeOutput("Execution Error: " + e.getMessage());
-            e.printStackTrace();
+            try {
+                Files.write(Paths.get("/app/error.txt"), ("Runtime Error: " + e.getMessage()).getBytes());
+            } catch (IOException ignored) {}
+            System.exit(1);
         }
     }
+}
+`)
+
+  return {
+    success: true,
+    runtimeImage: "openjdk:17-slim",
+    execCommand: [
+      "/bin/sh", "-c", 
+      "cd /app && javac *.java 2>/app/compile_error.txt && if [ $? -eq 0 ]; then java Runner 2>/app/runtime_error.txt; else cat /app/compile_error.txt > /app/error.txt && exit 1; fi || cat /app/runtime_error.txt > /app/error.txt"
+    ]
+  }
+}
+
+// C++ setup
+async function setupCpp(code: string, tempDir: string): Promise<LanguageConfig> {
+  const solutionFile = path.join(tempDir, "solution.cpp")
+  await writeFile(solutionFile, code)
+
+  const runnerFile = path.join(tempDir, "runner.cpp")
+  await writeFile(runnerFile, `
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <stdexcept>
+
+std::string runSolution(const std::string& input);
+
+int main() {
+    try {
+        std::ifstream inFile("/app/input.txt");
+        std::stringstream buffer;
+        buffer << inFile.rdbuf();
+        std::string input = buffer.str();
+        inFile.close();
+        
+        std::string output = runSolution(input);
+        
+        std::ofstream outFile("/app/output.txt");
+        outFile << output;
+        outFile.close();
+        
+        return 0;
+    } catch (const std::exception& e) {
+        std::ofstream errorFile("/app/error.txt");
+        errorFile << "Runtime Error: " << e.what();
+        errorFile.close();
+        return 1;
+    }
+}
+`)
+
+  const wrapperFile = path.join(tempDir, "solution_wrapper.cpp")
+  await writeFile(wrapperFile, `
+#include <sstream>
+#include <iostream>
+#include <streambuf>
+
+#define main user_main
+#include "solution.cpp"
+#undef main
+
+std::string runSolution(const std::string& input) {
+    std::stringstream inputStream(input);
+    std::streambuf* oldCin = std::cin.rdbuf(inputStream.rdbuf());
     
-    private static void writeOutput(String content) {
-        try (FileWriter writer = new FileWriter("/app/output.txt")) {
-            writer.write(content);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-}`
-      )
+    std::stringstream outputStream;
+    std::streambuf* oldCout = std::cout.rdbuf(outputStream.rdbuf());
+    
+    user_main();
+    
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    
+    return outputStream.str();
+}
+`)
 
-      runtimeImage = "openjdk:17-slim"
-      execCommand = [
-        "/bin/sh",
-        "-c",
-        "cd /app && " +
-        "javac Runner.java && " +
-        "java -Xmx" + Math.floor(memoryLimit * 0.9) + "M Runner"
-      ]
-      break
+  return {
+    success: true,
+    runtimeImage: "gcc:latest",
+    execCommand: [
+      "/bin/sh", "-c",
+      "cd /app && g++ -o runner runner.cpp solution_wrapper.cpp -std=c++17 2>/app/compile_error.txt && ./runner || (cat /app/compile_error.txt > /app/error.txt && exit 1)"
+    ]
+  }
+}
 
-    case "c++":
-    case "cpp":
-      mainFile = path.join(tempDir, "solution.cpp")
-      await writeFile(mainFile, code)
+// C setup
+async function setupC(code: string, tempDir: string): Promise<LanguageConfig> {
+  const solutionFile = path.join(tempDir, "solution.c")
+  await writeFile(solutionFile, code)
 
-      // Create a C++ runner file that doesn't conflict with user's main
-      await writeFile(
-        path.join(tempDir, "runner.cpp"),
-        `#include <iostream>
-        #include <fstream>
-        #include <sstream>
-        #include <string>
-        #include <stdexcept>
-        
-        // Forward declaration of user's solution function
-        std::string runSolution(const std::string& input);
-        
-        int main() {
-            try {
-                // Read input
-                std::ifstream inFile("/app/input.txt");
-                if (!inFile.is_open()) {
-                    throw std::runtime_error("Cannot open input file");
-                }
-                
-                std::stringstream buffer;
-                buffer << inFile.rdbuf();
-                std::string input = buffer.str();
-                inFile.close();
-                
-                // Run the solution
-                std::string output = runSolution(input);
-                
-                // Write output
-                std::ofstream outFile("/app/output.txt");
-                if (!outFile.is_open()) {
-                    throw std::runtime_error("Cannot open output file");
-                }
-                outFile << output;
-                outFile.close();
-                
-                return 0;
-            } catch (const std::exception& e) {
-                std::ofstream errorFile("/app/output.txt");
-                errorFile << "Runtime Error: " << e.what();
-                errorFile.close();
-                return 1;
-            } catch (...) {
-                std::ofstream errorFile("/app/output.txt");
-                errorFile << "Runtime Error: Unknown exception occurred";
-                errorFile.close();
-                return 1;
-            }
-        }
-        `
-      )
-
-      // Create a header file to connect the runner with the solution
-      await writeFile(
-        path.join(tempDir, "solution.h"),
-        `#ifndef SOLUTION_H
-        #define SOLUTION_H
-        
-        #include <string>
-        
-        std::string runSolution(const std::string& input);
-        
-        #endif
-        `
-      )
-
-      // Create a wrapper file that includes the user's solution
-      await writeFile(
-        path.join(tempDir, "solution_wrapper.cpp"),
-        `#include "solution.h"
-        #include <sstream>
-        #include <iostream>
-        #include <streambuf>
-        #include <stdexcept>
-        
-        // Rename user's main to avoid conflict
-        #define main user_main
-        #include "solution.cpp"
-        #undef main
-        
-        std::string runSolution(const std::string& input) {
-            try {
-                // Redirect cin/cout to capture the output
-                std::stringstream inputStream(input);
-                std::streambuf* oldCin = std::cin.rdbuf(inputStream.rdbuf());
-                
-                std::stringstream outputStream;
-                std::streambuf* oldCout = std::cout.rdbuf(outputStream.rdbuf());
-                
-                // Call the renamed user main with exception handling
-                int result = user_main();
-                
-                // Restore cin/cout
-                std::cin.rdbuf(oldCin);
-                std::cout.rdbuf(oldCout);
-                
-                return outputStream.str();
-            } catch (const std::exception& e) {
-                return "Runtime Error: " + std::string(e.what());
-            } catch (...) {
-                return "Runtime Error: Unknown exception occurred";
-            }
-        }
-        `
-      )
-
-      // Update the Makefile
-      await writeFile(
-        path.join(tempDir, "Makefile"),
-        'all:\n\tg++ -o runner runner.cpp solution_wrapper.cpp -std=c++17 -I/app\n\nclean:\n\trm -f runner'
-      )
-
-      runtimeImage = "gcc:latest"
-      execCommand = [
-        "/bin/sh",
-        "-c",
-        "cd /app && make && ./runner"
-      ]
-      break
-
-    case "c":
-      mainFile = path.join(tempDir, "solution.c")
-      await writeFile(mainFile, code)
-
-      // Create a C runner file
-      await writeFile(
-        path.join(tempDir, "runner.c"),
-        `#include <stdio.h>
+  const runnerFile = path.join(tempDir, "runner.c")
+  await writeFile(runnerFile, `
+#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
-// Forward declaration of user's code
 extern int main();
 
-// Function to redirect stdin/stdout and capture output
-void execute_and_capture() {
-    // Redirect stdin to our input file
-    FILE* input = freopen("/app/input.txt", "r", stdin);
-    if (!input) {
-        fprintf(stderr, "Error opening input file\\n");
-        return;
-    }
+int main_wrapper() {
+    freopen("/app/input.txt", "r", stdin);
+    freopen("/app/output.txt", "w", stdout);
+    freopen("/app/error.txt", "w", stderr);
     
-    // Redirect stdout to our output file
-    FILE* output = freopen("/app/output.txt", "w", stdout);
-    if (!output) {
-        fprintf(stderr, "Error opening output file\\n");
-        fclose(input);
-        return;
-    }
-    
-    // Run user's main
-    main();
-    
-    // Close redirected files
-    fclose(input);
-    fclose(output);
+    return main();
+}
+`)
+
+  return {
+    success: true,
+    runtimeImage: "gcc:latest",
+    execCommand: [
+      "/bin/sh", "-c",
+      "cd /app && gcc -o runner runner.c solution.c -std=c11 2>/app/compile_error.txt && ./runner || (cat /app/compile_error.txt > /app/error.txt && exit 1)"
+    ]
+  }
 }
 
-int main(int argc, char* argv[]) {
-    execute_and_capture();
-    return 0;
-}
-`
-      )
+// Ruby setup
+async function setupRuby(code: string, tempDir: string): Promise<LanguageConfig> {
+  const solutionFile = path.join(tempDir, "solution.rb")
+  await writeFile(solutionFile, code)
 
-      // Create a simple Makefile for C
-      await writeFile(
-        path.join(tempDir, "Makefile"),
-        `all:
-	gcc -o runner runner.c solution.c -std=c11
-
-clean:
-	rm -f runner
-`
-      )
-
-      runtimeImage = "gcc:latest"
-      execCommand = [
-        "/bin/sh",
-        "-c",
-        "cd /app && make && ./runner"
-      ]
-      break
-
-    case "ruby":
-      mainFile = path.join(tempDir, "solution.rb")
-      await writeFile(mainFile, code)
-
-      // Create a Ruby runner file
-      await writeFile(
-        path.join(tempDir, "runner.rb"),
-        `#!/usr/bin/env ruby
-require_relative './solution'
-
-# Redirect stdin to input file
-$stdin = File.open('/app/input.txt', 'r')
-
-# Capture stdout
-original_stdout = $stdout
-$stdout = StringIO.new
-
-# Run the solution based on what's available
-if defined?(solve)
-  output = solve($stdin.read)
-  $stdout.puts(output) if output
-elsif defined?(main)
-  output = main($stdin.read)
-  $stdout.puts(output) if output
-elsif defined?(solution)
-  output = solution($stdin.read)
-  $stdout.puts(output) if output
-else
-  # Try to find a method that could be called
-  Object.methods.each do |method|
-    if method.to_s =~ /^(solve|main|solution|process)/
-      output = send(method, $stdin.read)
-      $stdout.puts(output) if output
-      break
-    end
+  const runnerFile = path.join(tempDir, "runner.rb")
+  await writeFile(runnerFile, `
+begin
+  require_relative './solution'
+  
+  input = File.read('/app/input.txt').strip
+  
+  output = if defined?(solve)
+    solve(input)
+  elsif defined?(main)
+    main(input)
+  elsif defined?(solution)
+    solution(input)
+  else
+    raise "No executable function found"
   end
+  
+  File.write('/app/output.txt', output.to_s.strip)
+rescue => e
+  File.write('/app/error.txt', "Runtime Error: #{e.message}")
+  exit 1
 end
+`)
 
-# Get captured output and write to file
-captured_output = $stdout.string
-$stdout = original_stdout
-File.write('/app/output.txt', captured_output)
-`
-      )
+  return {
+    success: true,
+    runtimeImage: "ruby:3-alpine",
+    execCommand: ["ruby", "/app/runner.rb"]
+  }
+}
 
-      runtimeImage = "ruby:3-alpine"
-      execCommand = ["ruby", "/app/runner.rb"]
-      break
+// Go setup
+async function setupGo(code: string, tempDir: string): Promise<LanguageConfig> {
+  const solutionFile = path.join(tempDir, "solution.go")
+  await writeFile(solutionFile, code)
 
-    case "go":
-      mainFile = path.join(tempDir, "solution.go")
-      await writeFile(mainFile, code)
-
-      // Create a Go runner file
-      await writeFile(
-        path.join(tempDir, "runner.go"),
-        `package main
+  const runnerFile = path.join(tempDir, "runner.go")
+  await writeFile(runnerFile, `
+package main
 
 import (
-	"io/ioutil"
-	"os"
+    "io/ioutil"
+    "os"
 )
 
-// Import user's solution
-// The solution.go file should have package main
-
 func main() {
-	// Read input
-	input, err := ioutil.ReadFile("/app/input.txt")
-	if err != nil {
-		panic(err)
-	}
+    defer func() {
+        if r := recover(); r != nil {
+            ioutil.WriteFile("/app/error.txt", []byte("Runtime Error: " + r.(string)), 0644)
+            os.Exit(1)
+        }
+    }()
+    
+    input, err := ioutil.ReadFile("/app/input.txt")
+    if err != nil {
+        panic(err.Error())
+    }
+    
+    oldStdin := os.Stdin
+    tmpFile, _ := ioutil.TempFile("", "stdin")
+    tmpFile.Write(input)
+    tmpFile.Seek(0, 0)
+    os.Stdin = tmpFile
+    
+    oldStdout := os.Stdout
+    r, w, _ := os.Pipe()
+    os.Stdout = w
+    
+    // This would call the user's main - but Go doesn't allow this easily
+    // So we need a different approach for Go
+    
+    os.Stdin = oldStdin
+    w.Close()
+    os.Stdout = oldStdout
+    
+    capturedOutput, _ := ioutil.ReadAll(r)
+    ioutil.WriteFile("/app/output.txt", capturedOutput, 0644)
+}
+`)
 
-	// Redirect stdin to read from input
-	oldStdin := os.Stdin
-	tmpFile, err := ioutil.TempFile("", "stdin")
-	if err != nil {
-		panic(err)
-	}
-	defer os.Remove(tmpFile.Name())
-	
-	_, err = tmpFile.Write(input)
-	if err != nil {
-		panic(err)
-	}
-	tmpFile.Seek(0, 0)
-	os.Stdin = tmpFile
-	
-	// Redirect stdout to capture output
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-	
-	// Run the user's main function
-	main()
-	
-	// Restore stdin/stdout
-	os.Stdin = oldStdin
-	w.Close()
-	os.Stdout = oldStdout
-	
-	// Read captured output
-	capturedOutput, _ := ioutil.ReadAll(r)
-	
-	// Write to output file
-	ioutil.WriteFile("/app/output.txt", capturedOutput, 0644)
-}`
-      )
+  return {
+    success: true,
+    runtimeImage: "golang:1.18-alpine",
+    execCommand: [
+      "/bin/sh", "-c",
+      "cd /app && go build -o runner *.go 2>/app/compile_error.txt && ./runner || (cat /app/compile_error.txt > /app/error.txt && exit 1)"
+    ]
+  }
+}
 
-      runtimeImage = "golang:1.18-alpine"
-      execCommand = [
-        "/bin/sh",
-        "-c",
-        "cd /app && go build -o runner *.go && ./runner"
-      ]
-      break
+// Rust setup
+async function setupRust(code: string, tempDir: string): Promise<LanguageConfig> {
+  const solutionFile = path.join(tempDir, "solution.rs")
+  await writeFile(solutionFile, code)
 
-    case "rust":
-      mainFile = path.join(tempDir, "solution.rs")
-      await writeFile(mainFile, code)
-
-      // Create a Cargo.toml file
-      await writeFile(
-        path.join(tempDir, "Cargo.toml"),
-        `[package]
+  const cargoFile = path.join(tempDir, "Cargo.toml")
+  await writeFile(cargoFile, `
+[package]
 name = "solution"
 version = "0.1.0"
 edition = "2021"
+`)
 
-[dependencies]
-`
-      )
+  const mainFile = path.join(tempDir, "main.rs")
+  await writeFile(mainFile, `
+use std::fs;
+use std::io;
 
-      // Create a main.rs file to import and run the solution
-      await writeFile(
-        path.join(tempDir, "main.rs"),
-        `use std::fs::{self, File};
-use std::io::{self, Read, Write};
-
-// Include user's solution code
 include!("solution.rs");
 
 fn main() -> io::Result<()> {
-    // Read input
-    let mut input = String::new();
-    File::open("/app/input.txt")?.read_to_string(&mut input)?;
-    
-    // Capture output
-    let output = if let Some(main_fn) = option_env!("MAIN_FN") {
-        match main_fn {
-            "main" => main(&input),
-            "solve" => solve(&input),
-            "solution" => solution(&input),
-            _ => String::from("Error: Function not found"),
-        }
-    } else {
-        // Try common function names
-        match () {
-            _ if is_defined!("main") => main(&input),
-            _ if is_defined!("solve") => solve(&input),
-            _ if is_defined!("solution") => solution(&input),
-            _ => String::from("Error: No callable function found"),
-        }
-    };
-    
-    // Write output
+    let input = fs::read_to_string("/app/input.txt")?;
+    let output = main_solution(&input);
     fs::write("/app/output.txt", output)?;
     Ok(())
 }
+`)
 
-// Macro to check if function is defined (simplified)
-macro_rules! is_defined {
-    ($name:expr) => {
-        false // This is a placeholder, Rust doesn't have easy runtime reflection
-    };
+  return {
+    success: true,
+    runtimeImage: "rust:1.59-alpine",
+    execCommand: [
+      "/bin/sh", "-c",
+      "cd /app && rustc -o runner main.rs 2>/app/compile_error.txt && ./runner || (cat /app/compile_error.txt > /app/error.txt && exit 1)"
+    ]
+  }
 }
-`
-      )
 
-      runtimeImage = "rust:1.59-alpine"
-      execCommand = [
-        "/bin/sh",
-        "-c",
-        "cd /app && rustc -o runner main.rs && ./runner"
-      ]
-      break
+// PHP setup
+async function setupPhp(code: string, tempDir: string): Promise<LanguageConfig> {
+  const solutionFile = path.join(tempDir, "solution.php")
+  await writeFile(solutionFile, code)
 
-    case "php":
-      mainFile = path.join(tempDir, "solution.php")
-      await writeFile(mainFile, code)
-
-      // Create a PHP runner file
-      await writeFile(
-        path.join(tempDir, "runner.php"),
-        `<?php
-// Include user's solution
-require_once('./solution.php');
-
-// Read input
-$input = file_get_contents('/app/input.txt');
-
-// Capture output
-ob_start();
-
-// Try to call the appropriate function
-if (function_exists('main')) {
-    $result = main($input);
-    if ($result !== null) echo $result;
-} elseif (function_exists('solve')) {
-    $result = solve($input);
-    if ($result !== null) echo $result;
-} elseif (function_exists('solution')) {
-    $result = solution($input);
-    if ($result !== null) echo $result;
-} else {
-    // Try to find any function that might be the entry point
-    $functions = get_defined_functions()['user'];
-    if (!empty($functions)) {
-        $func = $functions[0];
-        $result = $func($input);
-        if ($result !== null) echo $result;
+  const runnerFile = path.join(tempDir, "runner.php")
+  await writeFile(runnerFile, `
+<?php
+try {
+    require_once('./solution.php');
+    
+    $input = trim(file_get_contents('/app/input.txt'));
+    
+    $output = null;
+    if (function_exists('main')) {
+        $output = main($input);
+    } elseif (function_exists('solve')) {
+        $output = solve($input);
+    } elseif (function_exists('solution')) {
+        $output = solution($input);
     } else {
-        echo "Error: No callable function found";
+        throw new Exception("No executable function found");
     }
+    
+    file_put_contents('/app/output.txt', trim($output));
+} catch (Exception $e) {
+    file_put_contents('/app/error.txt', 'Runtime Error: ' . $e->getMessage());
+    exit(1);
+}
+`)
+
+  return {
+    success: true,
+    runtimeImage: "php:8.1-alpine",
+    execCommand: ["php", "/app/runner.php"]
+  }
 }
 
-// Get captured output
-$output = ob_get_clean();
-
-// Write to output file
-file_put_contents('/app/output.txt', $output);
-`
-      )
-
-      runtimeImage = "php:8.1-alpine"
-      execCommand = ["php", "/app/runner.php"]
-      break
-
-    default:
-      throw new Error(`Unsupported language: ${language}`)
-  }
-
-  // Add this function to format compilation errors
-  function formatCompilationError(logOutput: string): string {
-    const lines = logOutput.split('\n');
-    let formattedError = '';
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      // Skip make and g++ command lines
-      if (line.startsWith('@g++') || line.startsWith('make:') || line.startsWith('In file included')) {
-        continue;
-      }
-
-      // Format error lines
-      if (line.includes('error:')) {
-        const parts = line.split(':');
-        if (parts.length >= 4) {
-          const file = parts[0].replace(/^.*\//, ''); // Remove path, keep filename
-          const lineNum = parts[1];
-          const colNum = parts[2];
-          const errorMsg = parts.slice(3).join(':').trim();
-
-          formattedError += `${file}:${lineNum}:${colNum}: ${errorMsg}\n`;
-
-          // Look for the code line that follows
-          if (i + 1 < lines.length) {
-            const nextLine = lines[i + 1].trim();
-            if (nextLine.includes('|')) {
-              const codeParts = nextLine.split('|');
-              if (codeParts.length >= 2) {
-                const lineNumber = codeParts[0].trim();
-                const code = codeParts[1];
-                formattedError += `${lineNumber} |${code}\n`;
-
-                // Look for the pointer line
-                if (i + 2 < lines.length) {
-                  const pointerLine = lines[i + 2].trim();
-                  if (pointerLine.includes('^')) {
-                    const pointerParts = pointerLine.split('|');
-                    if (pointerParts.length >= 2) {
-                      formattedError += `     |${pointerParts[1]}\n`;
-                    }
-                  }
-                }
-              }
-            }
-          }
-          formattedError += '\n';
-        }
-      }
-    }
-
-    return formattedError.trim() || logOutput;
-  }
-
+// Execute a single test case
+async function executeTestCase(
+  langConfig: LanguageConfig,
+  input: string,
+  expectedOutput: string,
+  timeLimit: number,
+  memoryLimit: number,
+  tempDir: string
+): Promise<{
+  output: string
+  passed: boolean
+  runtime: number
+  memory: number
+  error?: string
+  errorType?: string
+}> {
   // Write input to file
   await writeFile(path.join(tempDir, "input.txt"), input)
 
-  // Create empty system_in.txt for Java
-  if (language.toLowerCase() === "java") {
-    await writeFile(path.join(tempDir, "system_in.txt"), "")
-  }
+  const docker = getDockerInstance()
+  let container: Docker.Container | null = null
 
   try {
-    const docker = getDockerInstance()
-
-    const container = await docker.createContainer({
-      Image: runtimeImage,
-      Cmd: execCommand,
+    container = await docker.createContainer({
+      Image: langConfig.runtimeImage,
+      Cmd: langConfig.execCommand,
       HostConfig: {
         Binds: [`${tempDir}:/app`],
-        Memory: memoryLimit * 1024 * 1024,
+        Memory: memoryLimit * 1024 * 1024, // Convert MB to bytes
         MemorySwap: memoryLimit * 1024 * 1024,
-        NanoCpus: 1000000000,
+        NanoCpus: 1000000000, // 1 CPU
         PidsLimit: 50,
-        ReadonlyRootfs: false, // Changed to false for Java to allow temp files
+        ReadonlyRootfs: false,
         NetworkMode: "none",
       },
       Tty: false,
       OpenStdin: false,
-      StopTimeout: timeLimit,
     })
 
-    // Start execution timer
-    const startTime = Date.now()
-
-    // Start container
+    // Start execution timer - this is when we start measuring runtime
+    const startTime = process.hrtime.bigint()
+    
     await container.start()
 
-    // Wait for container to finish or timeout
-    const executionPromise = new Promise((resolve, reject) => {
-      container.wait((err, data) => {
+    // Wait for container with timeout
+    const executionPromise = new Promise<any>((resolve, reject) => {
+      container!.wait((err, data) => {
         if (err) reject(err)
         else resolve(data)
       })
     })
 
-    let executionResult: any
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error("TIME_LIMIT_EXCEEDED"))
+      }, timeLimit * 1000)
+    })
+
+    let result: any
     let timedOut = false
 
     try {
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          timedOut = true
-          reject(new Error("TIME_LIMIT_EXCEEDED"))
-        }, timeLimit * 1000) // Convert to milliseconds
-      })
-
-      executionResult = await Promise.race([executionPromise, timeoutPromise])
+      result = await Promise.race([executionPromise, timeoutPromise])
     } catch (error) {
-      if (timedOut) {
+      if (String(error).includes("TIME_LIMIT_EXCEEDED")) {
+        timedOut = true
         try {
-          await container.stop()
-        } catch (stopError) {
-          console.error("Error stopping container:", stopError)
+          await container.kill()
+        } catch (killError) {
+          console.error("Error killing container:", killError)
         }
-        executionResult = { StatusCode: 124, Error: "TIME_LIMIT_EXCEEDED" }
-      } else {
-        throw error
       }
+      throw error
     }
 
-    // Calculate runtime
-    const runtime = Date.now() - startTime
+    // Stop execution timer - this is when we stop measuring runtime
+    const endTime = process.hrtime.bigint()
+    const runtime = Number(endTime - startTime) / 1000000 // Convert nanoseconds to milliseconds
 
-    // Get container stats for memory usage
+    // Get memory stats
     const stats = await container.stats({ stream: false })
-    const memoryUsage = stats.memory_stats.usage / 1024 // Convert bytes to KB
+    const memoryUsage = stats.memory_stats.usage ? Math.round(stats.memory_stats.usage / 1024) : 0 // Convert to KB
 
     let output = ""
     let error = ""
-    let status = ""
-    let compilationError = ""
+    let errorType = ""
 
-    if (!timedOut) {
-      // Read execution output
-      if (fs.existsSync(path.join(tempDir, "output.txt"))) {
-        output = fs.readFileSync(path.join(tempDir, "output.txt"), "utf8").trim()
-      }
-
-      // Get logs for error messages
-      const logs = await container.logs({
-        stdout: true,
-        stderr: true,
-      })
-      const logOutput = logs.toString("utf8")
-
-      // Check for compilation errors specifically
-      if (logOutput.includes("error:") || logOutput.includes("Error:") || logOutput.includes("ERROR:")) {
-        // For C++
-        if (language.toLowerCase() === "c++" || language.toLowerCase() === "cpp") {
-          if (logOutput.includes("solution_wrapper.cpp:") ||
-            logOutput.includes("runner.cpp:") ||
-            logOutput.includes("solution.cpp:") ||
-            logOutput.includes("make: *** [Makefile")) {
-            compilationError = formatCompilationError(logOutput)
-            status = "COMPILATION_ERROR"
-          }
-        }
-        // For Java
-        else if (language.toLowerCase() === "java") {
-          if (logOutput.includes("Compilation Error") || logOutput.includes("javac")) {
-            // Format Java compilation errors
-            const javaError = logOutput
-              .split('\n')
-              .filter(line => line.includes('error:') || line.includes('^'))
-              .join('\n')
-            compilationError = javaError || logOutput
-            status = "COMPILATION_ERROR"
-          }
-        }
-        // For other languages - add similar formatting as needed
-        else {
-          compilationError = logOutput
-          status = "COMPILATION_ERROR"
-        }
-      }
-
-      // Check for runtime errors in output
-      if (output.includes("Runtime Error:")) {
-        error = output
-        status = "RUNTIME_ERROR"
-        output = "" // Clear output since it contains error
-      }
-
-      // Check execution status
-      if (executionResult && executionResult.StatusCode !== 0 && !status) {
-        if (logOutput.includes("OutOfMemoryError") || memoryUsage >= memoryLimit * 1024) {
-          status = "MEMORY_LIMIT_EXCEEDED"
-        } else {
-          status = "RUNTIME_ERROR"
-          error = logOutput
-        }
-      }
+    if (timedOut) {
+      errorType = "TIME_LIMIT_EXCEEDED"
+      error = "Time limit exceeded"
     } else {
-      status = "TIME_LIMIT_EXCEEDED"
+      // Check for error file first
+      if (fs.existsSync(path.join(tempDir, "error.txt"))) {
+        error = fs.readFileSync(path.join(tempDir, "error.txt"), "utf8").trim()
+        if (error.includes("Compilation Error")) {
+          errorType = "COMPILATION_ERROR"
+        } else if (error.includes("Runtime Error")) {
+          errorType = "RUNTIME_ERROR"
+        } else {
+          errorType = "EXECUTION_ERROR"
+        }
+      } else if (fs.existsSync(path.join(tempDir, "output.txt"))) {
+        output = fs.readFileSync(path.join(tempDir, "output.txt"), "utf8").trim()
+      } else {
+        // No output file was generated
+        error = "No output file generated"
+        errorType = "EXECUTION_ERROR"
+      }
+
+      // Check memory limit
+      if (memoryUsage >= memoryLimit * 1024) {
+        errorType = "MEMORY_LIMIT_EXCEEDED"
+        error = "Memory limit exceeded"
+      }
     }
 
     // Clean up container
@@ -834,30 +854,65 @@ file_put_contents('/app/output.txt', $output);
       console.error("Error removing container:", removeError)
     }
 
-    // Compare output with expected output
-    const passed = output.trim() === expectedOutput.trim() && !status
+    const passed = !error && !errorType && output.trim() === expectedOutput.trim()
 
-    // Return structure that shows formatted errors
     return {
+      output: error || output,
       passed,
-      output: passed ? output : (compilationError || error || output),
-      error: status,
-      runtime,
-      memory: Math.round(memoryUsage),
-      showError: !!status,
-      errorType: status,
-      isCompilationError: status === "COMPILATION_ERROR",
-      formattedError: compilationError || error
+      runtime: Math.round(runtime),
+      memory: memoryUsage,
+      error: error || undefined,
+      errorType: errorType || undefined
     }
+
   } catch (error) {
-    console.error("Docker execution error:", error)
-    throw error
-  } finally {
-    // Clean up temp files
-    try {
-      fs.rmSync(tempDir, { recursive: true, force: true })
-    } catch (rmError) {
-      console.error("Error removing temp directory:", rmError)
+    if (container) {
+      try {
+        await container.remove({ force: true })
+      } catch (removeError) {
+        console.error("Error removing container:", removeError)
+      }
     }
+    throw error
+  }
+}
+
+// Legacy function for backward compatibility
+export async function executeCodeInDocker(
+  code: string,
+  language: string,
+  input: string,
+  expectedOutput: string,
+  timeLimit: number,
+  memoryLimit: number,
+) {
+  const testCases = [{ input, output: expectedOutput, id: "single" }]
+  const result = await executeCode(code, language, testCases, timeLimit, memoryLimit, false)
+  
+  if (result.testResults.length > 0) {
+    const testResult = result.testResults[0]
+    return {
+      passed: testResult.passed,
+      output: testResult.actualOutput,
+      error: testResult.errorType,
+      runtime: testResult.runtime,
+      memory: testResult.memory,
+      showError: !!testResult.error,
+      errorType: testResult.errorType,
+      isCompilationError: testResult.errorType === "COMPILATION_ERROR",
+      formattedError: testResult.error
+    }
+  }
+  
+  return {
+    passed: false,
+    output: "",
+    error: result.errorMessage || "Execution failed",
+    runtime: 0,
+    memory: 0,
+    showError: true,
+    errorType: "EXECUTION_ERROR",
+    isCompilationError: false,
+    formattedError: result.errorMessage || "Execution failed"
   }
 }

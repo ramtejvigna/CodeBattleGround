@@ -1,13 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 
-export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
-    // Await the params object before destructuring
-    const resolvedParams = await params
-    const userId = resolvedParams.userId
+    const { userId } = await params
 
-    // Fetch user profile with related data
     const userProfile = await prisma.userProfile.findUnique({
       where: {
         userId: userId,
@@ -15,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
       include: {
         badges: true,
         languages: true,
-      },
+      },  
     })
 
     if (!userProfile) {

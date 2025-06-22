@@ -69,13 +69,13 @@ async function calculatePointsBreakdown(userId: string) {
     let discussions = 0;
 
     activities.forEach(activity => {
-        if (activity.type === 'challenge') {
+        if (activity.type === 'CHALLENGE') {
             challenges += activity.points;
-        } else if (activity.type === 'contest') {
+        } else if (activity.type === 'CONTEST') {
             contests += activity.points;
-        } else if (activity.type === 'badge') {
+        } else if (activity.type === 'BADGE') {
             badges += activity.points;
-        } else if (activity.type === 'discussion') {
+        } else if (activity.type === 'DISCUSSION') {
             discussions += activity.points;
         }
     });
