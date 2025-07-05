@@ -151,23 +151,51 @@ export const authOptions: NextAuthOptions = {
                     const dbUser = await prisma.user.findUnique({
                         where: { email: user.email ?? undefined },
                         include: {
-                            userProfile: true
+                            userProfile: true,
+                            accounts: true
                         }
                     });
 
-                    // Create user profile if it doesn't exist
-                    if (dbUser && !dbUser.userProfile) {
-                        await prisma.userProfile.create({
-                            data: {
-                                userId: dbUser.id,
-                                preferredLanguage: 'JavaScript',
-                                rank: null,
-                                solved: 0,
-                                level: 1,
-                                points: 0,
-                                streakDays: 0
-                            }
-                        });
+                    if (dbUser) {
+                        // Check if user already has this OAuth account linked
+                        const existingAccount = dbUser.accounts.find(
+                            acc => acc.provider === account.provider
+                        );
+
+                        if (!existingAccount) {
+                            // User exists but doesn't have this OAuth provider linked
+                            // Auto-link the account
+                            await prisma.account.create({
+                                data: {
+                                    userId: dbUser.id,
+                                    provider: account.provider,
+                                    providerAccountId: account.providerAccountId!,
+                                    type: account.type,
+                                    access_token: account.access_token,
+                                    refresh_token: account.refresh_token,
+                                    expires_at: account.expires_at,
+                                    token_type: account.token_type,
+                                    scope: account.scope,
+                                    id_token: account.id_token,
+                                    session_state: account.session_state
+                                }
+                            });
+                        }
+
+                        // Create user profile if it doesn't exist
+                        if (!dbUser.userProfile) {
+                            await prisma.userProfile.create({
+                                data: {
+                                    userId: dbUser.id,
+                                    preferredLanguage: 'JavaScript',
+                                    rank: null,
+                                    solved: 0,
+                                    level: 1,
+                                    points: 0,
+                                    streakDays: 0
+                                }
+                            });
+                        }
                     }
                 }
                 return true;
