@@ -43,6 +43,8 @@ model UserProfile {
   user              User       @relation(fields: [userId], references: [id])
   preferredLanguage String
   level             Int
+  competitions      Competition[]  @relation("CompetitionParticipants")
+  participations    CompetitionParticipation[]
   points            Int
   streakDays        Int
   badges            Badge[]
@@ -197,6 +199,44 @@ model ChallengeLike {
   @@unique([userId, challengeId])
 }
 
+model Competition {
+  id              String            @id @default(cuid())
+  title           String
+  description     String            @db.Text
+  startDate       DateTime
+  endDate         DateTime
+  participants    UserProfile[]            @relation("CompetitionParticipants")
+  participations  CompetitionParticipation[]
+  status          CompetitionStatus
+  difficulty      Difficulty
+  createdAt       DateTime          @default(now())
+}
+
+model CompetitionParticipation {
+  id              String            @id @default(cuid())
+  userId          String
+  userProfile     UserProfile       @relation(fields: [userId], references: [userId])
+  competitionId   String
+  competition     Competition       @relation(fields: [competitionId], references: [id])
+  joinedAt        DateTime          @default(now())
+  leftAt          DateTime?
+  status          ParticipationStatus @default(JOINED)
+  rank            Int?              // Final rank in competition
+  pointsEarned    Int               @default(0)
+  challengesSolved Int              @default(0)
+  timeSpent       Int               @default(0) // in minutes
+  badges          Json?             // Array of badges earned from this competition
+  perks           Json?             // Special perks or rewards earned
+  performance     Json?             // Detailed performance metrics
+  completedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([userId, competitionId])
+  @@index([competitionId])
+  @@index([userId])
+}
+
 model AdminLead {
     id              String    @id @default(cuid())
     userId          String    @unique
@@ -206,6 +246,13 @@ model AdminLead {
     accessLevel     Int       @default(1)
     createdAt       DateTime  @default(now())
     updatedAt       DateTime  @updatedAt
+}
+
+enum CompetitionStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
 }
 
 enum ChallengeType {
@@ -236,4 +283,12 @@ enum ActivityType {
   CONTEST
   BADGE
   DISCUSSION
+}
+
+enum ParticipationStatus {
+  JOINED
+  ACTIVE
+  COMPLETED
+  LEFT
+  DISQUALIFIED
 }
