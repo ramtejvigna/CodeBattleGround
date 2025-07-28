@@ -41,7 +41,6 @@ const GridModel = ({ onClose }: GridModelProps) => {
       items: [
         { name: "Activity Feed", icon: <Activity className="w-4 h-4" />, href: "/activity" },
         { name: "Rankings", icon: <Award className="w-4 h-4" />, href: "/community/rankings" },
-        { name: "Competitions", icon: <Zap className="w-4 h-4" />, href: "/community/competitions" },
       ],
     },
   ]
