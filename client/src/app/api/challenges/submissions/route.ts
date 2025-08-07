@@ -7,7 +7,7 @@ export async function GET(
     req: NextRequest
 ) {
     try {
-        const challengeId = req.nextUrl.searchParams.get('id');
+        const challengeId = req.nextUrl.searchParams.get('challengeId');
 
         if (!challengeId) {
             return NextResponse.json(

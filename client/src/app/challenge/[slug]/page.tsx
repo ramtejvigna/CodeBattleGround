@@ -124,6 +124,10 @@ const ChallengePage = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [submissionsLoading, setSubmissionsLoading] = useState(false)
 
+  // Determine if challenge is solved (accepted submission exists or current submission accepted)
+  const hasAcceptedSubmission = submissions.some((s) => s.status === "ACCEPTED")
+  const isSolved = submissionStatus === "ACCEPTED" || hasAcceptedSubmission
+
   // Fetch challenge data
   useEffect(() => {
     const fetchChallenge = async () => {
@@ -178,7 +182,7 @@ const ChallengePage = () => {
 
     setSubmissionsLoading(true)
     try {
-      const response = await fetch(`/api/challenges/${challengeId}/submissions`)
+      const response = await fetch(`/api/challenges/submissions?challengeId=${challengeId}`)
       const data = await response.json()
 
       if (response.ok) {
@@ -613,25 +617,38 @@ int main() {
                 <TabsContent value="description" className="p-4 space-y-6">
                   {/* Problem Stats */}
                   <div
-                    className={`flex items-center space-x-6 text-sm transition-colors duration-200 ${
+                    className={`flex items-center justify-between space-x-6 text-sm transition-colors duration-200 ${
                       isDark ? "text-gray-400" : "text-gray-600"
                     }`}
                   >
-                    <div className="flex items-center space-x-1">
-                      <ThumbsUp className="w-4 h-4" />
-                      <span>{challenge.likes}</span>
+                    <div className="flex items-center space-x-6">
+                      <div className="flex items-center space-x-1">
+                        <ThumbsUp className="w-4 h-4" />
+                        <span>{challenge.likes}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <ThumbsDown className="w-4 h-4" />
+                        <span>{challenge.dislikes || 0}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Star className="w-4 h-4" />
+                        <span>Add to List</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Share className="w-4 h-4" />
+                        <span>Share</span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <ThumbsDown className="w-4 h-4" />
-                      <span>{challenge.dislikes || 0}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4" />
-                      <span>Add to List</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Share className="w-4 h-4" />
-                      <span>Share</span>
+                    <div>
+                      {isSolved && (
+                        <span
+                          className={`inline-flex items-center justify-center rounded-full w-5 h-5 `}
+                          title="Solved"
+                          aria-label="Solved"
+                        >
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -845,10 +862,6 @@ int main() {
                                       <span>Memory: {submission.memory}MB</span>
                                     </div>
                                   )}
-                                  <div className="flex items-center space-x-1">
-                                    <Star className="w-4 h-4" />
-                                    <span>Score: {submission.score}%</span>
-                                  </div>
                                 </div>
                               )}
 

@@ -28,18 +28,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     const getMonacoLanguage = (lang?: string): string => {
         const languageMap: { [key: string]: string } = {
             javascript: "javascript",
-            typescript: "typescript",
             python: "python",
             java: "java",
             c: "c",
             "c++": "cpp",
-            "c#": "csharp",
-            ruby: "ruby",
-            go: "go",
-            rust: "rust",
-            swift: "swift",
-            kotlin: "kotlin",
-            php: "php",
         };
 
         return languageMap[lang?.toLowerCase() || ""] || lang?.toLowerCase() || "";

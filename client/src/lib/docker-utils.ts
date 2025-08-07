@@ -38,6 +38,30 @@ interface CodeExecutionResult {
   compilationError?: string
 }
 
+// Normalize outputs to make comparison robust against whitespace around delimiters
+function normalizeOutputForComparison(value: string): string {
+  const normalizedNewlines = value.replace(/\r\n/g, "\n").trim()
+  const normalizedDelimiters = normalizedNewlines
+    .replace(/\s*,\s*/g, ",")
+    .replace(/\s*;\s*/g, ";")
+    .replace(/\s*:\s*/g, ":")
+    .replace(/\s*\[\s*/g, "[")
+    .replace(/\s*\]\s*/g, "]")
+    .replace(/\s*\(\s*/g, "(")
+    .replace(/\s*\)\s*/g, ")")
+    .replace(/\s*\{\s*/g, "{")
+    .replace(/\s*\}\s*/g, "}")
+  // Collapse multiple spaces/newlines into a single space, without removing all spaces
+  return normalizedDelimiters.replace(/\s+/g, " ").trim()
+}
+
+function areOutputsEquivalent(expected: string, actual: string): boolean {
+  if (expected.trim() === actual.trim()) return true
+  const normExpected = normalizeOutputForComparison(expected)
+  const normActual = normalizeOutputForComparison(actual)
+  return normExpected === normActual
+}
+
 // Main execution function that handles both single test case runs and full submissions
 export async function executeCode(
   code: string,
@@ -180,14 +204,6 @@ async function setupLanguageEnvironment(
         return await setupCpp(code, tempDir)
       case "c":
         return await setupC(code, tempDir)
-      case "ruby":
-        return await setupRuby(code, tempDir)
-      case "go":
-        return await setupGo(code, tempDir)
-      case "rust":
-        return await setupRust(code, tempDir)
-      case "php":
-        return await setupPhp(code, tempDir)
       default:
         return {
           success: false,
@@ -560,177 +576,6 @@ int main_wrapper() {
   }
 }
 
-// Ruby setup
-async function setupRuby(code: string, tempDir: string): Promise<LanguageConfig> {
-  const solutionFile = path.join(tempDir, "solution.rb")
-  await writeFile(solutionFile, code)
-
-  const runnerFile = path.join(tempDir, "runner.rb")
-  await writeFile(runnerFile, `
-begin
-  require_relative './solution'
-  
-  input = File.read('/app/input.txt').strip
-  
-  output = if defined?(solve)
-    solve(input)
-  elsif defined?(main)
-    main(input)
-  elsif defined?(solution)
-    solution(input)
-  else
-    raise "No executable function found"
-  end
-  
-  File.write('/app/output.txt', output.to_s.strip)
-rescue => e
-  File.write('/app/error.txt', "Runtime Error: #{e.message}")
-  exit 1
-end
-`)
-
-  return {
-    success: true,
-    runtimeImage: "ruby:3-alpine",
-    execCommand: ["ruby", "/app/runner.rb"]
-  }
-}
-
-// Go setup
-async function setupGo(code: string, tempDir: string): Promise<LanguageConfig> {
-  const solutionFile = path.join(tempDir, "solution.go")
-  await writeFile(solutionFile, code)
-
-  const runnerFile = path.join(tempDir, "runner.go")
-  await writeFile(runnerFile, `
-package main
-
-import (
-    "io/ioutil"
-    "os"
-)
-
-func main() {
-    defer func() {
-        if r := recover(); r != nil {
-            ioutil.WriteFile("/app/error.txt", []byte("Runtime Error: " + r.(string)), 0644)
-            os.Exit(1)
-        }
-    }()
-    
-    input, err := ioutil.ReadFile("/app/input.txt")
-    if err != nil {
-        panic(err.Error())
-    }
-    
-    oldStdin := os.Stdin
-    tmpFile, _ := ioutil.TempFile("", "stdin")
-    tmpFile.Write(input)
-    tmpFile.Seek(0, 0)
-    os.Stdin = tmpFile
-    
-    oldStdout := os.Stdout
-    r, w, _ := os.Pipe()
-    os.Stdout = w
-    
-    // This would call the user's main - but Go doesn't allow this easily
-    // So we need a different approach for Go
-    
-    os.Stdin = oldStdin
-    w.Close()
-    os.Stdout = oldStdout
-    
-    capturedOutput, _ := ioutil.ReadAll(r)
-    ioutil.WriteFile("/app/output.txt", capturedOutput, 0644)
-}
-`)
-
-  return {
-    success: true,
-    runtimeImage: "golang:1.18-alpine",
-    execCommand: [
-      "/bin/sh", "-c",
-      "cd /app && go build -o runner *.go 2>/app/compile_error.txt && ./runner || (cat /app/compile_error.txt > /app/error.txt && exit 1)"
-    ]
-  }
-}
-
-// Rust setup
-async function setupRust(code: string, tempDir: string): Promise<LanguageConfig> {
-  const solutionFile = path.join(tempDir, "solution.rs")
-  await writeFile(solutionFile, code)
-
-  const cargoFile = path.join(tempDir, "Cargo.toml")
-  await writeFile(cargoFile, `
-[package]
-name = "solution"
-version = "0.1.0"
-edition = "2021"
-`)
-
-  const mainFile = path.join(tempDir, "main.rs")
-  await writeFile(mainFile, `
-use std::fs;
-use std::io;
-
-include!("solution.rs");
-
-fn main() -> io::Result<()> {
-    let input = fs::read_to_string("/app/input.txt")?;
-    let output = main_solution(&input);
-    fs::write("/app/output.txt", output)?;
-    Ok(())
-}
-`)
-
-  return {
-    success: true,
-    runtimeImage: "rust:1.59-alpine",
-    execCommand: [
-      "/bin/sh", "-c",
-      "cd /app && rustc -o runner main.rs 2>/app/compile_error.txt && ./runner || (cat /app/compile_error.txt > /app/error.txt && exit 1)"
-    ]
-  }
-}
-
-// PHP setup
-async function setupPhp(code: string, tempDir: string): Promise<LanguageConfig> {
-  const solutionFile = path.join(tempDir, "solution.php")
-  await writeFile(solutionFile, code)
-
-  const runnerFile = path.join(tempDir, "runner.php")
-  await writeFile(runnerFile, `
-<?php
-try {
-    require_once('./solution.php');
-    
-    $input = trim(file_get_contents('/app/input.txt'));
-    
-    $output = null;
-    if (function_exists('main')) {
-        $output = main($input);
-    } elseif (function_exists('solve')) {
-        $output = solve($input);
-    } elseif (function_exists('solution')) {
-        $output = solution($input);
-    } else {
-        throw new Exception("No executable function found");
-    }
-    
-    file_put_contents('/app/output.txt', trim($output));
-} catch (Exception $e) {
-    file_put_contents('/app/error.txt', 'Runtime Error: ' . $e->getMessage());
-    exit(1);
-}
-`)
-
-  return {
-    success: true,
-    runtimeImage: "php:8.1-alpine",
-    execCommand: ["php", "/app/runner.php"]
-  }
-}
-
 // Execute a single test case
 async function executeTestCase(
   langConfig: LanguageConfig,
@@ -854,7 +699,7 @@ async function executeTestCase(
       console.error("Error removing container:", removeError)
     }
 
-    const passed = !error && !errorType && output.trim() === expectedOutput.trim()
+    const passed = !error && !errorType && areOutputsEquivalent(expectedOutput, output)
 
     return {
       output: error || output,
