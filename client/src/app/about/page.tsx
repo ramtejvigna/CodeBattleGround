@@ -10,7 +10,7 @@ const AboutPage = () => {
     const developer = {
         name: "Vigna Ramtej Telagarapu",
         role: "Software Developer",
-        image: "/images/Me.jpg", // Update the path accordingly
+        image: "/images/Me.webp", // Update the path accordingly
         bio: "B.tech in Artificial Intelligence and Data Science with experience in Full Stack Web Developement and Data Science ",
         github: "https://github.com/ramtejvigna",
         twitter: "https://x.com/ramtejvigna46",

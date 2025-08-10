@@ -205,7 +205,7 @@ const Home = () => {
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
             <div className="absolute bottom-0 right-0 w-32 h-32 bg-red-500/10 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-6000"></div>
 
-            <div className={`relative z-10 ${theme === "dark" ? "bg-gray-800 border border-gray-700" : "bg-gray-100 border border-gray-300"} rounded-xl p-4 shadow-xl transition-shadow duration-300 hover:shadow-2xl hover:shadow-orange-500/20`}>
+            <div className={`relative ${theme === "dark" ? "bg-gray-800 border border-gray-700" : "bg-gray-100 border border-gray-300"} rounded-xl p-4 shadow-xl transition-shadow duration-300 hover:shadow-2xl hover:shadow-orange-500/20`}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex space-x-2">
                   <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
